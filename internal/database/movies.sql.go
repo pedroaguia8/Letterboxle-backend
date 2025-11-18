@@ -9,32 +9,28 @@ import (
 	"context"
 )
 
-const getMovies = `-- name: GetMovies :many
-SELECT id, title, year, tagline, genres, budget, director, actor1, actor2, popularity, poster_url FROM movies
+const searchMovies = `-- name: SearchMovies :many
+SELECT title, year
+FROM movies
+WHERE title ILIKE $1
+LIMIT 20
 `
 
-func (q *Queries) GetMovies(ctx context.Context) ([]Movie, error) {
-	rows, err := q.db.QueryContext(ctx, getMovies)
+type SearchMoviesRow struct {
+	Title string
+	Year  int32
+}
+
+func (q *Queries) SearchMovies(ctx context.Context, title string) ([]SearchMoviesRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchMovies, title)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Movie
+	var items []SearchMoviesRow
 	for rows.Next() {
-		var i Movie
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Year,
-			&i.Tagline,
-			&i.Genres,
-			&i.Budget,
-			&i.Director,
-			&i.Actor1,
-			&i.Actor2,
-			&i.Popularity,
-			&i.PosterUrl,
-		); err != nil {
+		var i SearchMoviesRow
+		if err := rows.Scan(&i.Title, &i.Year); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

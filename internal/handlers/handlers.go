@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pedroaguia8/Letterboxle-backend/internal/database"
@@ -71,6 +72,48 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 	if err != nil {
 		log.Printf("ERROR: Failed to respond with json")
 		err := RespondWithError(w, http.StatusInternalServerError, "Failed to get movie")
+		if err != nil {
+			log.Printf("Failed to send error response to client: %v", err)
+			return
+		}
+		return
+	}
+}
+
+func (cfg *ApiConfig) SearchMovies(w http.ResponseWriter, req *http.Request) {
+	searchQuery := req.PathValue("search_query")
+
+	searchWords := strings.Fields(searchQuery)
+	searchPattern := "%" + strings.Join(searchWords, "%") + "%"
+
+	dbMovies, err := cfg.Db.SearchMovies(req.Context(), searchPattern)
+	if err != nil {
+		log.Printf("ERROR: Failed to search movies from database with query: %v", searchQuery)
+		err := RespondWithError(w, http.StatusBadRequest, "Failed to get movies")
+		if err != nil {
+			log.Printf("Failed to send error response to client: %v", err)
+			return
+		}
+		return
+	}
+
+	type movieDto struct {
+		Title string `json:"title"`
+		Year  string `json:"year"`
+	}
+	res := []movieDto{}
+	for _, dbMovie := range dbMovies {
+		movie := movieDto{
+			Title: dbMovie.Title,
+			Year:  strconv.Itoa(int(dbMovie.Year)),
+		}
+		res = append(res, movie)
+	}
+
+	err = RespondWithJSON(w, http.StatusOK, res)
+	if err != nil {
+		log.Printf("ERROR: Failed to respond with json of movieDto array")
+		err := RespondWithError(w, http.StatusInternalServerError, "Failed to get movies")
 		if err != nil {
 			log.Printf("Failed to send error response to client: %v", err)
 			return
