@@ -1,0 +1,27 @@
+-- +goose Up
+-- +goose StatementBegin
+ALTER TABLE movies
+ALTER COLUMN year SET NOT NULL,
+ALTER COLUMN tagline SET NOT NULL,
+ALTER COLUMN genres SET NOT NULL,
+ALTER COLUMN budget SET NOT NULL,
+ALTER COLUMN director SET NOT NULL,
+ALTER COLUMN actor1 SET NOT NULL,
+ALTER COLUMN actor2 SET NOT NULL,
+ALTER COLUMN popularity SET NOT NULL;
+-- +goose StatementEnd
+
+
+
+-- +goose Down
+-- +goose StatementBegin
+ALTER TABLE movies
+ALTER COLUMN year DROP NOT NULL,
+ALTER COLUMN tagline DROP NOT NULL,
+ALTER COLUMN genres DROP NOT NULL,
+ALTER COLUMN budget DROP NOT NULL,
+ALTER COLUMN director DROP NOT NULL,
+ALTER COLUMN actor1 DROP NOT NULL,
+ALTER COLUMN actor2 DROP NOT NULL,
+ALTER COLUMN popularity DROP NOT NULL;
+-- +goose StatementEnd
