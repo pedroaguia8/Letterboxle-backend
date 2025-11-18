@@ -12,14 +12,14 @@ import (
 type Movie struct {
 	ID         int32
 	Title      string
-	Year       sql.NullInt32
-	Tagline    sql.NullString
-	Genres     sql.NullString
-	Budget     sql.NullString
-	Director   sql.NullString
-	Actor1     sql.NullString
-	Actor2     sql.NullString
-	Popularity sql.NullFloat64
+	Year       int32
+	Tagline    string
+	Genres     string
+	Budget     string
+	Director   string
+	Actor1     string
+	Actor2     string
+	Popularity float64
 	PosterUrl  sql.NullString
 }
 
