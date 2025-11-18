@@ -7,11 +7,21 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
 const getMovieOfTheDay = `-- name: GetMovieOfTheDay :one
-SELECT movies.title, movies.tagline, movies.genres, movies.director, movies.actor1, movies.actor2, movies.year
+SELECT
+    movies.id,
+    movies.title,
+    movies.tagline,
+    movies.genres,
+    movies.director,
+    movies.actor1,
+    movies.actor2,
+    movies.year,
+    movies.poster_url
 FROM movie_of_the_day
 INNER JOIN movies
 ON movie_of_the_day.movie_id = movies.id
@@ -19,19 +29,22 @@ WHERE movie_of_the_day.date = $1
 `
 
 type GetMovieOfTheDayRow struct {
-	Title    string
-	Tagline  string
-	Genres   string
-	Director string
-	Actor1   string
-	Actor2   string
-	Year     int32
+	ID        int32
+	Title     string
+	Tagline   string
+	Genres    string
+	Director  string
+	Actor1    string
+	Actor2    string
+	Year      int32
+	PosterUrl sql.NullString
 }
 
 func (q *Queries) GetMovieOfTheDay(ctx context.Context, date time.Time) (GetMovieOfTheDayRow, error) {
 	row := q.db.QueryRowContext(ctx, getMovieOfTheDay, date)
 	var i GetMovieOfTheDayRow
 	err := row.Scan(
+		&i.ID,
 		&i.Title,
 		&i.Tagline,
 		&i.Genres,
@@ -39,6 +52,7 @@ func (q *Queries) GetMovieOfTheDay(ctx context.Context, date time.Time) (GetMovi
 		&i.Actor1,
 		&i.Actor2,
 		&i.Year,
+		&i.PosterUrl,
 	)
 	return i, err
 }

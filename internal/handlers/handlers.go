@@ -11,32 +11,40 @@ import (
 )
 
 type ApiConfig struct {
-	Db        *database.Queries
-	Platform  string
-	JwtSecret string
-	PolkaKey  string
-	Port      string
+	Db         *database.Queries
+	Platform   string
+	JwtSecret  string
+	PolkaKey   string
+	Port       string
+	TmdbApiKey string
 }
 
 type Movie struct {
-	Title    string `json:"title"`
-	Tagline  string `json:"tagline"`
-	Genres   string `json:"genres"`
-	Director string `json:"director"`
-	Actor1   string `json:"actor1"`
-	Actor2   string `json:"actor2"`
-	Year     string `json:"year"`
+	Title     string `json:"title"`
+	Tagline   string `json:"tagline"`
+	Genres    string `json:"genres"`
+	Director  string `json:"director"`
+	Actor1    string `json:"actor1"`
+	Actor2    string `json:"actor2"`
+	Year      string `json:"year"`
+	PosterUrl string `json:"poster_url"`
 }
 
 func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
+	posterUrl := ""
+	if dbMovie.PosterUrl.Valid {
+		posterUrl = dbMovie.PosterUrl.String
+	}
+
 	return Movie{
-		Title:    dbMovie.Title,
-		Tagline:  dbMovie.Tagline,
-		Genres:   dbMovie.Genres,
-		Director: dbMovie.Director,
-		Actor1:   dbMovie.Actor1,
-		Actor2:   dbMovie.Actor2,
-		Year:     strconv.Itoa(int(dbMovie.Year)),
+		Title:     dbMovie.Title,
+		Tagline:   dbMovie.Tagline,
+		Genres:    dbMovie.Genres,
+		Director:  dbMovie.Director,
+		Actor1:    dbMovie.Actor1,
+		Actor2:    dbMovie.Actor2,
+		Year:      strconv.Itoa(int(dbMovie.Year)),
+		PosterUrl: posterUrl,
 	}
 }
 
@@ -45,7 +53,7 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 
 	date := time.Time{}
 	if dateParam == "today" {
-		date = time.Now()
+		date = time.Now().UTC()
 	} else {
 		log.Printf("ERROR: Request for movie of date other than 'today'")
 		err := RespondWithError(w, http.StatusBadRequest, "Failed to get movie")

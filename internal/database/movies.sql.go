@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const searchMovies = `-- name: SearchMovies :many
@@ -42,4 +43,20 @@ func (q *Queries) SearchMovies(ctx context.Context, title string) ([]SearchMovie
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateMoviePoster = `-- name: UpdateMoviePoster :exec
+UPDATE movies
+SET poster_url = $1
+WHERE id = $2
+`
+
+type UpdateMoviePosterParams struct {
+	PosterUrl sql.NullString
+	ID        int32
+}
+
+func (q *Queries) UpdateMoviePoster(ctx context.Context, arg UpdateMoviePosterParams) error {
+	_, err := q.db.ExecContext(ctx, updateMoviePoster, arg.PosterUrl, arg.ID)
+	return err
 }

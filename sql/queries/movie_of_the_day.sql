@@ -1,5 +1,14 @@
 -- name: GetMovieOfTheDay :one
-SELECT movies.title, movies.tagline, movies.genres, movies.director, movies.actor1, movies.actor2, movies.year
+SELECT
+    movies.id,
+    movies.title,
+    movies.tagline,
+    movies.genres,
+    movies.director,
+    movies.actor1,
+    movies.actor2,
+    movies.year,
+    movies.poster_url
 FROM movie_of_the_day
 INNER JOIN movies
 ON movie_of_the_day.movie_id = movies.id
