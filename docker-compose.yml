@@ -1,5 +1,6 @@
 services:
   letterboxle-backend:
+    container_name: letterboxle-backend
     build: .
     ports:
       - "${PORT}:${PORT}"
