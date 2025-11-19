@@ -24,7 +24,7 @@ func main() {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Couldn't load environment variables from .env file")
+		log.Printf("No .env file found, using environment variables")
 	}
 
 	apiConfig := handlers.ApiConfig{}
