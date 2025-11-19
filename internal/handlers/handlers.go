@@ -89,7 +89,16 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 }
 
 func (cfg *ApiConfig) SearchMovies(w http.ResponseWriter, req *http.Request) {
-	searchQuery := req.PathValue("search_query")
+	searchQuery := req.URL.Query().Get("search_query")
+
+	if searchQuery == "" {
+		err := RespondWithJSON(w, http.StatusOK, []interface{}{})
+		if err != nil {
+			log.Printf("Failed to send error response to client: %v", err)
+			return
+		}
+		return
+	}
 
 	searchWords := strings.Fields(searchQuery)
 	searchPattern := "%" + strings.Join(searchWords, "%") + "%"

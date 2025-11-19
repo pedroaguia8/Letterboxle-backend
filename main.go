@@ -55,7 +55,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /api/movie_of_the_day/{date}", http.HandlerFunc(apiConfig.GetMovieOfTheDay))
-	mux.Handle("GET /api/movies/{search_query}", http.HandlerFunc(apiConfig.SearchMovies))
+	mux.Handle("GET /api/movies", http.HandlerFunc(apiConfig.SearchMovies))
 
 	server := http.Server{
 		Addr:    ":" + apiConfig.Port,
@@ -72,8 +72,8 @@ func main() {
 	<-ctx.Done()
 	log.Println("Shutdown signal received. Shutting down...")
 
-	// Graceful shutdown sequence
-	// Give the server 5 seconds to finish active requests
+	// Graceful shutdown sequence.
+	// Give the server 5 seconds to finish active requests.
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
 
