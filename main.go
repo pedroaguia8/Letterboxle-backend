@@ -58,8 +58,9 @@ func main() {
 	mux.Handle("GET /api/movies", http.HandlerFunc(apiConfig.SearchMovies))
 
 	server := http.Server{
-		Addr:    ":" + apiConfig.Port,
-		Handler: mux,
+		Addr:              ":" + apiConfig.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: time.Duration(5 * time.Second),
 	}
 
 	go func() {
