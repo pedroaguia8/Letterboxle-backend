@@ -51,10 +51,8 @@ func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
 func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request) {
 	dateParam := req.PathValue("date")
 
-	date := time.Time{}
-	if dateParam == "today" {
-		date = time.Now().UTC()
-	} else {
+	// Later we change this when we implement playing past day's games
+	if dateParam != "today" {
 		log.Printf("ERROR: Request for movie of date other than 'today'")
 		err := RespondWithError(w, http.StatusBadRequest, "Failed to get movie")
 		if err != nil {
@@ -63,6 +61,7 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 		}
 		return
 	}
+	date := time.Now().UTC()
 
 	dbMovie, err := cfg.Db.GetMovieOfTheDay(req.Context(), date)
 	if err != nil {
