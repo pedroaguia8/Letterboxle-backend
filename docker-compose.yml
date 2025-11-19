@@ -1,0 +1,17 @@
+services:
+  letterboxle-backend:
+    build: .
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - DB_URL=${DB_URL}
+      - PLATFORM={PLATFORM}
+      - PORT=${PORT}
+      - TMDB_API_KEY={TMDB_API_KEY}
+    networks:
+      - npm
+
+networks:
+  npm:
+    external: true

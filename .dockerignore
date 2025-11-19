@@ -1,0 +1,25 @@
+# Version Control
+.git
+.gitignore
+
+# Local Build Artifacts
+main
+app
+server
+*.exe
+*.dll
+bin/
+dist/
+
+# Docker specific files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment Variables
+.env
+
+# Editor/IDE specifics
+.vscode/
+.idea/
+*.swp
