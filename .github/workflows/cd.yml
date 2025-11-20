@@ -38,6 +38,10 @@ jobs:
           ssh pedroaguia8@ssh.pedroaguia8.dev "
             cd ~/Letterboxle-backend && \
             git pull origin main && \
+            echo \"DB_URL=$DB_URL\" > .env && \
+            echo \"TMDB_API_KEY=$TMDB_API_KEY\" >> .env && \
+            echo \"PLATFORM=$PLATFORM\" >> .env && \
+            echo \"PORT=$PORT\" >> .env && \
             docker compose up -d --build && \
             echo 'Running Migrations...' && \
             docker compose exec -T letterboxle-backend sh -c 'goose -dir sql/schema postgres \"\$DB_URL\" up'
