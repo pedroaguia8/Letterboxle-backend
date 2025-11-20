@@ -30,9 +30,6 @@ jobs:
       - name: Build app
         run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app
 
-      - name: Run database migrations
-        run: goose -dir "sql/schema" postgres $DB_URL up
-
       - name: Install cloudflared
         run: |
           curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
