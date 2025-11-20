@@ -1,0 +1,61 @@
+name: cd
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    env:
+      DB_URL: ${{ secrets.DB_URL }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      PLATFORM: "prod"
+      PORT: "8080"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.1"
+
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      - name: Build app
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app
+
+      - name: Run database migrations
+        run: goose -dir "sql/schema" postgres $DB_URL up
+
+      - name: Install cloudflared
+        run: |
+          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo apt install ./cloudflared.deb
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          
+          echo "Host ssh.pedroaguia8.dev" >> ~/.ssh/config
+          echo "  ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+
+      - name: Deploy via SSH
+        run: |
+          ssh pedroaguia8@ssh.pedroaguia8.dev "
+            cd ~/Letterboxle-backend && \
+            git pull origin main && \
+            docker compose up -d --build && \
+            echo 'Running Migrations...' && \
+            docker compose exec -T letterboxle-backend goose -dir sql/schema postgres \"\$DB_URL\" up
+          "
