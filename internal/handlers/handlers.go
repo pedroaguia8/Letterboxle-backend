@@ -37,7 +37,7 @@ func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
 	}
 
 	return Movie{
-		Title:     dbMovie.Title + "test",
+		Title:     dbMovie.Title,
 		Tagline:   dbMovie.Tagline,
 		Genres:    dbMovie.Genres,
 		Director:  dbMovie.Director,
