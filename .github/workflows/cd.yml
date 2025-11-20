@@ -54,5 +54,5 @@ jobs:
             git pull origin main && \
             docker compose up -d --build && \
             echo 'Running Migrations...' && \
-            docker compose exec -T letterboxle-backend goose -dir sql/schema postgres \"\$DB_URL\" up
+            docker compose exec -T letterboxle-backend sh -c 'goose -dir sql/schema postgres \"\$DB_URL\" up'
           "
