@@ -10,19 +10,26 @@ import (
 	"net/url"
 )
 
-const BaseURL = "https://api.themoviedb.org/3"
+const DefaultBaseURL = "https://api.themoviedb.org/3"
 const ImageBaseURL = "https://image.tmdb.org/t/p/w500"
 
 type Client struct {
 	apiKey     string
+	baseURL    string
 	httpClient *http.Client
 }
 
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey:     apiKey,
+		baseURL:    DefaultBaseURL,
 		httpClient: &http.Client{},
 	}
+}
+
+// Helper for tests to override the URL
+func (c *Client) SetBaseURL(url string) {
+	c.baseURL = url
 }
 
 type SearchResponse struct {
@@ -33,7 +40,7 @@ type SearchResponse struct {
 
 func (c *Client) SearchMovie(ctx context.Context, title string, year int) (string, error) {
 	searchURL := fmt.Sprintf("%s/search/movie?query=%s&year=%d",
-		BaseURL,
+		c.baseURL,
 		url.QueryEscape(title),
 		year,
 	)
