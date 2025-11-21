@@ -28,6 +28,7 @@ type Movie struct {
 	Actor2    string `json:"actor2"`
 	Year      string `json:"year"`
 	PosterUrl string `json:"poster_url"`
+	Date      string `json:"date"`
 }
 
 func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
@@ -74,6 +75,7 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 		return
 	}
 	movie := dbMovieOfTheDayToMovie(dbMovie)
+	movie.Date = date.Format(time.DateOnly)
 
 	err = RespondWithJSON(w, http.StatusOK, movie)
 	if err != nil {
