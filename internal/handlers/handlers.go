@@ -130,7 +130,7 @@ func (cfg *ApiConfig) SearchMovies(w http.ResponseWriter, req *http.Request) {
 
 	dbMovies, err := cfg.Db.SearchMovies(req.Context(), searchPattern)
 	if err != nil {
-		log.Printf("ERROR: Failed to search movies from database with query: %v", searchQuery)
+		log.Printf("ERROR: Failed to search movies from database with query: %q", searchQuery)
 		err := RespondWithError(w, http.StatusBadRequest, "Failed to get movies")
 		if err != nil {
 			log.Printf("Failed to send error response to client: %v", err)
