@@ -86,7 +86,7 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 			posterURL = ""
 		}
 		posterURLSql := sql.NullString{String: posterURL, Valid: true}
-		
+
 		err = cfg.Db.UpdateMoviePoster(req.Context(), database.UpdateMoviePosterParams{
 			PosterUrl: posterURLSql,
 			ID:        dbMovie.ID,
