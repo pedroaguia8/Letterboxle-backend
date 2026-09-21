@@ -22,8 +22,10 @@ jobs:
       - name: Install cloudflared
         env:
           CLOUDFLARED_VERSION: "2026.9.1"
+          CLOUDFLARED_DEB_SHA256: "3be76adc4185d36a0bfb4c2dd8663292f0ed363797f2180333b513b43c81d419"
         run: |
           curl -L --output cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64.deb"
+          echo "${CLOUDFLARED_DEB_SHA256}  cloudflared.deb" | sha256sum -c -
           sudo apt install ./cloudflared.deb
 
       - name: Configure SSH
