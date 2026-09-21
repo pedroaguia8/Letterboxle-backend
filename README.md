@@ -1,4 +1,4 @@
-# 🎬 Letterboxle 🍿 (backend)
+# Letterboxle (backend)
 
 ![github actions status](https://github.com/pedroaguia8/Letterboxle-backend/actions/workflows/ci.yml/badge.svg)
 
@@ -19,7 +19,7 @@ I built Letterboxle to sharpen my full-stack development skills while creating s
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Play Online
 
@@ -41,7 +41,7 @@ Head to **[letterboxle.pedroaguia8.dev](https://letterboxle.pedroaguia8.dev)** a
 
 ---
 
-## 📖 Usage
+## Usage
 
 ### Tech Stack
 
@@ -74,7 +74,7 @@ Head to **[letterboxle.pedroaguia8.dev](https://letterboxle.pedroaguia8.dev)** a
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 ### Prerequisites
 
