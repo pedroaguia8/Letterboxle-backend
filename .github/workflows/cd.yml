@@ -27,14 +27,18 @@ jobs:
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          
+
+          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
           echo "Host ssh.pedroaguia8.dev" >> ~/.ssh/config
           echo "  ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h" >> ~/.ssh/config
-          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking yes" >> ~/.ssh/config
 
       - name: Deploy via SSH
         run: |
