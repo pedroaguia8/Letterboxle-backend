@@ -20,8 +20,10 @@ jobs:
 
     steps:
       - name: Install cloudflared
+        env:
+          CLOUDFLARED_VERSION: "2026.9.1"
         run: |
-          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          curl -L --output cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64.deb"
           sudo apt install ./cloudflared.deb
 
       - name: Configure SSH
