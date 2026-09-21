@@ -15,6 +15,8 @@ jobs:
     env:
       DB_URL: ${{ secrets.DB_URL }}
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
       PLATFORM: "prod"
       PORT: "8080"
 
@@ -40,13 +42,13 @@ jobs:
           echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-          echo "Host ssh.pedroaguia8.dev" >> ~/.ssh/config
+          echo "Host $SSH_HOST" >> ~/.ssh/config
           echo "  ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h" >> ~/.ssh/config
           echo "  StrictHostKeyChecking yes" >> ~/.ssh/config
 
       - name: Deploy via SSH
         run: |
-          ssh pedroaguia8@ssh.pedroaguia8.dev "
+          ssh "$SSH_USER@$SSH_HOST" "
             cd ~/Letterboxle-backend && \
             git pull origin main && \
             echo \"DB_URL=$DB_URL\" > .env && \
