@@ -1,13 +1,16 @@
 name: cd
 
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
     branches: [main]
+    types: [completed]
 
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
 
     env:
       DB_URL: ${{ secrets.DB_URL }}
