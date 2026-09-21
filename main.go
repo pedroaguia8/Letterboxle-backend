@@ -34,12 +34,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Couldn't connect to database: %v", err)
 	}
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			log.Fatalf("Couldn't close database: %v", err)
-		}
-	}(db)
 	dbQueries := database.New(db)
 	apiConfig.Db = dbQueries
 
@@ -85,6 +79,4 @@ func main() {
 	if err := db.Close(); err != nil {
 		log.Printf("Error closing database: %v", err)
 	}
-
-	log.Println("Server exited cleanly")
 }
