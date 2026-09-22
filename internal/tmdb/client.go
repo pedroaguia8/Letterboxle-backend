@@ -14,16 +14,16 @@ const DefaultBaseURL = "https://api.themoviedb.org/3"
 const ImageBaseURL = "https://image.tmdb.org/t/p/w500"
 
 type Client struct {
-	apiKey     string
-	baseURL    string
-	httpClient *http.Client
+	readAccessToken string
+	baseURL         string
+	httpClient      *http.Client
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(readAccessToken string) *Client {
 	return &Client{
-		apiKey:     apiKey,
-		baseURL:    DefaultBaseURL,
-		httpClient: &http.Client{},
+		readAccessToken: readAccessToken,
+		baseURL:         DefaultBaseURL,
+		httpClient:      &http.Client{},
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *Client) SearchMovie(ctx context.Context, title string, year int) (strin
 	}
 
 	req.Header.Set("accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.readAccessToken))
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

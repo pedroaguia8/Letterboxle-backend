@@ -41,7 +41,7 @@ func main() {
 
 	apiConfig.Port = os.Getenv("PORT")
 
-	posterFetcher := workers.NewPosterFetcher(dbQueries, os.Getenv("TMDB_API_KEY"))
+	posterFetcher := workers.NewPosterFetcher(dbQueries, os.Getenv("TMDB_API_READ_ACCESS_TOKEN"))
 	apiConfig.PosterFetcher = posterFetcher
 	posterFetcher.StartDailyWorker(ctx)
 

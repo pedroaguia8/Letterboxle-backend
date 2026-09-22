@@ -16,10 +16,10 @@ type PosterFetcher struct {
 	tmdbClient *tmdb.Client
 }
 
-func NewPosterFetcher(db *database.Queries, tmdbApiKey string) *PosterFetcher {
+func NewPosterFetcher(db *database.Queries, tmdbApiReadAccessToken string) *PosterFetcher {
 	return &PosterFetcher{
 		db:         db,
-		tmdbClient: tmdb.NewClient(tmdbApiKey),
+		tmdbClient: tmdb.NewClient(tmdbApiReadAccessToken),
 	}
 }
 

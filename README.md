@@ -99,7 +99,7 @@ go mod download
 
 ```bash
 cp .env.example .env
-# then fill in your own TMDB_API_KEY
+# then fill in your own TMDB_API_READ_ACCESS_TOKEN
 ```
 
 ### Start a Local Database
