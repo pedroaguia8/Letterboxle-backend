@@ -15,8 +15,6 @@ import (
 type ApiConfig struct {
 	Db         *database.Queries
 	Platform   string
-	JwtSecret  string
-	PolkaKey   string
 	Port       string
 	TmdbApiKey string
 }
