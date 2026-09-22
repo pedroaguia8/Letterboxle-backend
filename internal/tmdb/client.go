@@ -80,3 +80,65 @@ func (c *Client) SearchMovie(ctx context.Context, title string, year int) (strin
 	posterURL := ImageBaseURL + searchRes.Results[0].PosterPath
 	return posterURL, nil
 }
+
+type DiscoverResponse struct {
+	Results []struct {
+		ID int `json:"id"`
+	} `json:"results"`
+	TotalPages   int `json:"total_pages"`
+	TotalResults int `json:"total_results"`
+}
+
+type DiscoverResult struct {
+	MovieIDs     []int
+	TotalPages   int
+	TotalResults int
+}
+
+// DiscoverMovies fetches a single page of /discover/movie. TMDB caps discover
+// at page 500 and reports that cap via total_pages, so callers should loop
+// while page <= TotalPages rather than until an empty page.
+func (c *Client) DiscoverMovies(ctx context.Context, voteCountGte int, sortBy string, page int) (DiscoverResult, error) {
+	discoverURL := fmt.Sprintf("%s/discover/movie?vote_count.gte=%d&sort_by=%s&page=%d",
+		c.baseURL,
+		voteCountGte,
+		url.QueryEscape(sortBy),
+		page,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", discoverURL, nil)
+	if err != nil {
+		return DiscoverResult{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.readAccessToken))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return DiscoverResult{}, fmt.Errorf("failed to fetch from TMDB: %w", err)
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return DiscoverResult{}, fmt.Errorf("TMDB API returned status: %d", resp.StatusCode)
+	}
+
+	discoverRes := DiscoverResponse{}
+	if err := json.NewDecoder(resp.Body).Decode(&discoverRes); err != nil {
+		return DiscoverResult{}, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	movieIDs := make([]int, len(discoverRes.Results))
+	for i, result := range discoverRes.Results {
+		movieIDs[i] = result.ID
+	}
+
+	return DiscoverResult{
+		MovieIDs:     movieIDs,
+		TotalPages:   discoverRes.TotalPages,
+		TotalResults: discoverRes.TotalResults,
+	}, nil
+}

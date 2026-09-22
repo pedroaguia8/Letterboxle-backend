@@ -95,3 +95,100 @@ func TestSearchMovie(t *testing.T) {
 		})
 	}
 }
+
+func TestDiscoverMovies(t *testing.T) {
+	tests := map[string]struct {
+		voteCountGte   int
+		sortBy         string
+		page           int
+		mockResponse   string
+		mockStatusCode int
+		wantResult     DiscoverResult
+		wantErr        bool
+	}{
+		"successful_discover": {
+			voteCountGte:   5000,
+			sortBy:         "vote_count.desc",
+			page:           1,
+			mockStatusCode: 200,
+			mockResponse:   `{"results": [{"id": 27205}, {"id": 155}], "total_pages": 50, "total_results": 1000}`,
+			wantResult: DiscoverResult{
+				MovieIDs:     []int{27205, 155},
+				TotalPages:   50,
+				TotalResults: 1000,
+			},
+		},
+		"empty_page": {
+			voteCountGte:   5000,
+			sortBy:         "vote_count.desc",
+			page:           50,
+			mockStatusCode: 200,
+			mockResponse:   `{"results": [], "total_pages": 50, "total_results": 1000}`,
+			wantResult: DiscoverResult{
+				MovieIDs:     []int{},
+				TotalPages:   50,
+				TotalResults: 1000,
+			},
+		},
+		"api_error": {
+			voteCountGte:   5000,
+			sortBy:         "vote_count.desc",
+			page:           1,
+			mockStatusCode: 500,
+			mockResponse:   `{}`,
+			wantErr:        true,
+		},
+		"malformed_json": {
+			voteCountGte:   5000,
+			sortBy:         "vote_count.desc",
+			page:           1,
+			mockStatusCode: 200,
+			mockResponse:   `{invalid-json`,
+			wantErr:        true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				expectedPath := "/discover/movie"
+				if r.URL.Path != expectedPath {
+					t.Errorf("Expected path %s, got %s", expectedPath, r.URL.Path)
+				}
+				queryParams := r.URL.Query()
+
+				expectedVoteCountGte := fmt.Sprintf("%d", tc.voteCountGte)
+				if got := queryParams.Get("vote_count.gte"); got != expectedVoteCountGte {
+					t.Errorf("Expected ?vote_count.gte=%s, got %s", expectedVoteCountGte, got)
+				}
+				if got := queryParams.Get("sort_by"); got != tc.sortBy {
+					t.Errorf("Expected ?sort_by=%s, got %s", tc.sortBy, got)
+				}
+				expectedPage := fmt.Sprintf("%d", tc.page)
+				if got := queryParams.Get("page"); got != expectedPage {
+					t.Errorf("Expected ?page=%s, got %s", expectedPage, got)
+				}
+
+				w.WriteHeader(tc.mockStatusCode)
+				_, _ = w.Write([]byte(tc.mockResponse))
+			}))
+			defer server.Close()
+
+			client := NewClient("fake-api-key")
+			client.SetBaseURL(server.URL)
+
+			got, err := client.DiscoverMovies(context.Background(), tc.voteCountGte, tc.sortBy, tc.page)
+
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("DiscoverMovies() error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if tc.wantErr {
+				return
+			}
+
+			if diff := cmp.Diff(tc.wantResult, got); diff != "" {
+				t.Errorf("DiscoverMovies() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
