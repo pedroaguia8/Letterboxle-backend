@@ -10,8 +10,8 @@ Go backend for Letterboxle, a daily Wordle-style movie-guessing game. Serves a J
 
 ```bash
 # Run
-go build -o app && ./app          # requires .env (see below) or env vars set
-docker compose up --build         # containerized run
+go build -o app && ./app                        # requires .env (see below) or env vars set
+docker compose -f docker-compose.dev.yml up -d  # start local dev Postgres (app itself still runs natively, not in Docker)
 
 # Test
 go test ./... -cover              # full suite
@@ -28,7 +28,9 @@ goose -dir sql/schema postgres "$DB_URL" up     # apply migrations
 sqlc generate                                    # regenerate internal/database from sql/schema + sql/queries after editing either
 ```
 
-Required env vars (`.env` in dev, injected as secrets in CD): `DB_URL`, `TMDB_API_KEY`, `PLATFORM`, `PORT`.
+Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in CD): `DB_URL`, `TMDB_API_KEY`, `PLATFORM`, `PORT`.
+
+`docker-compose.yml` is prod-shaped (builds the app image, joins the external `npm` network) and is only ever run by `cd.yml` on the prod host — never run it locally, it'll fail (no `npm` network exists locally). `docker-compose.dev.yml` is unrelated to it (not an override/layer) and only provides a disposable local Postgres for development.
 
 ## Architecture
 

@@ -79,7 +79,7 @@ Head to **[letterboxle.pedroaguia8.dev](https://letterboxle.pedroaguia8.dev)** a
 ### Prerequisites
 
 - Go 1.25+
-- PostgreSQL
+- Docker (for the local dev database)
 - TMDB API key ([get one free](https://www.themoviedb.org/settings/api))
 
 ### Clone and Setup
@@ -95,24 +95,20 @@ cd Letterboxle-backend
 go mod download
 ```
 
-### Create the Database
-```bash
-# Connect to PostgreSQL and create the database
-psql -U postgres
-CREATE DATABASE letterboxle;
-\q
-```
-
 ### Configure Environment
 
-Create a `.env` file:
+```bash
+cp .env.example .env
+# then fill in your own TMDB_API_KEY
+```
+
+### Start a Local Database
 
 ```bash
-DB_URL=postgres://user:password@localhost:5432/letterboxle?sslmode=disable
-TMDB_API_KEY=your_tmdb_api_key
-PLATFORM=dev
-PORT=8080
+docker compose -f docker-compose.dev.yml up -d
 ```
+
+This starts a disposable Postgres container matching the credentials already in `.env.example` — no local Postgres install needed. Data persists in a Docker volume across restarts; run `docker compose -f docker-compose.dev.yml down -v` to wipe it.
 
 ### Run Database Migrations
 
@@ -126,12 +122,6 @@ goose -dir sql/schema postgres "$DB_URL" up
 ```bash
 go build -o app
 ./app
-```
-
-### Run with Docker
-
-```bash
-docker compose up --build
 ```
 
 ### Run Tests
