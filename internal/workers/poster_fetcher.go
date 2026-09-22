@@ -23,6 +23,40 @@ func NewPosterFetcher(db *database.Queries, tmdbApiKey string) *PosterFetcher {
 	}
 }
 
+// EnsurePosterURL returns the cached poster URL for a movie, or fetches it
+// from TMDB and persists it (including an empty result, to avoid refetching
+// on every call) if it isn't cached yet.
+func (pf *PosterFetcher) EnsurePosterURL(ctx context.Context, movieID int32, title string, year int32, currentPosterURL sql.NullString) (string, error) {
+	if currentPosterURL.Valid && currentPosterURL.String != "" {
+		return currentPosterURL.String, nil
+	}
+
+	log.Printf("Fetching poster from TMDB for: %s (%d)", title, year)
+
+	posterURL, err := pf.tmdbClient.SearchMovie(ctx, title, int(year))
+	if err != nil {
+		log.Printf("Error fetching from TMDB: %v", err)
+		// prevent refetching
+		posterURL = ""
+	}
+
+	err = pf.db.UpdateMoviePoster(ctx, database.UpdateMoviePosterParams{
+		PosterUrl: sql.NullString{String: posterURL, Valid: true},
+		ID:        movieID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to update poster URL: %w", err)
+	}
+
+	if posterURL != "" {
+		log.Printf("Successfully fetched and saved poster URL for: %s", title)
+	} else {
+		log.Printf("No poster found for: %s. Saved empty placeholder.", title)
+	}
+
+	return posterURL, nil
+}
+
 func (pf *PosterFetcher) FetchPosterForDate(ctx context.Context, date time.Time) error {
 	log.Printf("Fetching poster for movie on date: %s", date.Format(time.DateOnly))
 
@@ -36,35 +70,8 @@ func (pf *PosterFetcher) FetchPosterForDate(ctx context.Context, date time.Time)
 		return nil
 	}
 
-	log.Printf("Fetching poster from TMDB for: %s (%d)", movie.Title, movie.Year)
-
-	posterURL, err := pf.tmdbClient.SearchMovie(ctx, movie.Title, int(movie.Year))
-	if err != nil {
-		log.Printf("Error fetching from TMDB: %v", err)
-		// prevent refetching
-		posterURL = ""
-	}
-
-	posterURLSql := sql.NullString{
-		String: posterURL,
-		Valid:  true,
-	}
-
-	err = pf.db.UpdateMoviePoster(ctx, database.UpdateMoviePosterParams{
-		PosterUrl: posterURLSql,
-		ID:        movie.ID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update poster URL: %w", err)
-	}
-
-	if posterURL != "" {
-		log.Printf("Successfully fetched and saved poster URL for: %s", movie.Title)
-	} else {
-		log.Printf("No poster found for: %s. Saved empty placeholder.", movie.Title)
-	}
-
-	return nil
+	_, err = pf.EnsurePosterURL(ctx, movie.ID, movie.Title, movie.Year, movie.PosterUrl)
+	return err
 }
 
 func (pf *PosterFetcher) StartDailyWorker(ctx context.Context) {

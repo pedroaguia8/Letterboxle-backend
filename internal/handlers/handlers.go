@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"github.com/pedroaguia8/Letterboxle-backend/internal/database"
-	"github.com/pedroaguia8/Letterboxle-backend/internal/tmdb"
+	"github.com/pedroaguia8/Letterboxle-backend/internal/workers"
 )
 
 type ApiConfig struct {
-	Db         *database.Queries
-	Platform   string
-	Port       string
-	TmdbApiKey string
+	Db            *database.Queries
+	Platform      string
+	Port          string
+	PosterFetcher *workers.PosterFetcher
 }
 
 type Movie struct {
@@ -77,22 +77,11 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 
 	if !dbMovie.PosterUrl.Valid {
 		log.Printf("Poster missing for %s, fetching on demand", dbMovie.Title)
-		tmdbClient := tmdb.NewClient(cfg.TmdbApiKey)
-		posterURL, err := tmdbClient.SearchMovie(req.Context(), dbMovie.Title, int(dbMovie.Year))
+		posterURL, err := cfg.PosterFetcher.EnsurePosterURL(req.Context(), dbMovie.ID, dbMovie.Title, dbMovie.Year, dbMovie.PosterUrl)
 		if err != nil {
-			log.Printf("Failed to fetch on-demand poster from TMDB: %v", err)
-			posterURL = ""
-		}
-		posterURLSql := sql.NullString{String: posterURL, Valid: true}
-
-		err = cfg.Db.UpdateMoviePoster(req.Context(), database.UpdateMoviePosterParams{
-			PosterUrl: posterURLSql,
-			ID:        dbMovie.ID,
-		})
-		if err != nil {
-			log.Printf("Failed to update on-demand poster URL: %v", err)
+			log.Printf("Failed to fetch on-demand poster: %v", err)
 		} else {
-			dbMovie.PosterUrl = posterURLSql
+			dbMovie.PosterUrl = sql.NullString{String: posterURL, Valid: true}
 		}
 	}
 
