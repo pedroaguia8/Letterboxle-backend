@@ -17,12 +17,12 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 		"complete_movie": {
 			input: database.GetMovieOfTheDayRow{
 				Title:    "The Matrix",
-				Tagline:  "Welcome to the Real World",
-				Genres:   "Sci-Fi",
-				Director: "Wachowskis",
-				Actor1:   "Keanu Reeves",
-				Actor2:   "Laurence Fishburne",
-				Year:     1999,
+				Tagline:  sql.NullString{String: "Welcome to the Real World", Valid: true},
+				Genres:   sql.NullString{String: "Sci-Fi", Valid: true},
+				Director: sql.NullString{String: "Wachowskis", Valid: true},
+				Actor1:   sql.NullString{String: "Keanu Reeves", Valid: true},
+				Actor2:   sql.NullString{String: "Laurence Fishburne", Valid: true},
+				Year:     sql.NullInt32{Int32: 1999, Valid: true},
 				PosterUrl: sql.NullString{
 					String: "http://poster.url",
 					Valid:  true,
@@ -43,7 +43,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 		"null_poster": {
 			input: database.GetMovieOfTheDayRow{
 				Title: "Unknown",
-				Year:  2020,
+				Year:  sql.NullInt32{Int32: 2020, Valid: true},
 				PosterUrl: sql.NullString{
 					String: "",
 					Valid:  false,
@@ -54,6 +54,15 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 				Year:      "2020",
 				PosterUrl: "",
 				Date:      "",
+			},
+		},
+		"null_hint_fields": {
+			input: database.GetMovieOfTheDayRow{
+				Title: "Untagged",
+			},
+			want: Movie{
+				Title: "Untagged",
+				Year:  "0",
 			},
 		},
 	}

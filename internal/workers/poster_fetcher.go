@@ -70,7 +70,7 @@ func (pf *PosterFetcher) FetchPosterForDate(ctx context.Context, date time.Time)
 		return nil
 	}
 
-	_, err = pf.EnsurePosterURL(ctx, movie.ID, movie.Title, movie.Year, movie.PosterUrl)
+	_, err = pf.EnsurePosterURL(ctx, movie.ID, movie.Title, movie.Year.Int32, movie.PosterUrl)
 	return err
 }
 

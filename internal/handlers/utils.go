@@ -1,10 +1,25 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 )
+
+func nullString(ns sql.NullString) string {
+	if ns.Valid {
+		return ns.String
+	}
+	return ""
+}
+
+func nullInt32(ni sql.NullInt32) int32 {
+	if ni.Valid {
+		return ni.Int32
+	}
+	return 0
+}
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) error {
 	response, err := json.Marshal(payload)

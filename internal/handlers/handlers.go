@@ -32,20 +32,15 @@ type Movie struct {
 }
 
 func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
-	posterUrl := ""
-	if dbMovie.PosterUrl.Valid {
-		posterUrl = dbMovie.PosterUrl.String
-	}
-
 	return Movie{
 		Title:     dbMovie.Title,
-		Tagline:   dbMovie.Tagline,
-		Genres:    dbMovie.Genres,
-		Director:  dbMovie.Director,
-		Actor1:    dbMovie.Actor1,
-		Actor2:    dbMovie.Actor2,
-		Year:      strconv.Itoa(int(dbMovie.Year)),
-		PosterUrl: posterUrl,
+		Tagline:   nullString(dbMovie.Tagline),
+		Genres:    nullString(dbMovie.Genres),
+		Director:  nullString(dbMovie.Director),
+		Actor1:    nullString(dbMovie.Actor1),
+		Actor2:    nullString(dbMovie.Actor2),
+		Year:      strconv.Itoa(int(nullInt32(dbMovie.Year))),
+		PosterUrl: nullString(dbMovie.PosterUrl),
 	}
 }
 
@@ -77,7 +72,7 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 
 	if !dbMovie.PosterUrl.Valid {
 		log.Printf("Poster missing for %s, fetching on demand", dbMovie.Title)
-		posterURL, err := cfg.PosterFetcher.EnsurePosterURL(req.Context(), dbMovie.ID, dbMovie.Title, dbMovie.Year, dbMovie.PosterUrl)
+		posterURL, err := cfg.PosterFetcher.EnsurePosterURL(req.Context(), dbMovie.ID, dbMovie.Title, nullInt32(dbMovie.Year), dbMovie.PosterUrl)
 		if err != nil {
 			log.Printf("Failed to fetch on-demand poster: %v", err)
 		} else {
@@ -134,7 +129,7 @@ func (cfg *ApiConfig) SearchMovies(w http.ResponseWriter, req *http.Request) {
 	for _, dbMovie := range dbMovies {
 		movie := movieDto{
 			Title: dbMovie.Title,
-			Year:  strconv.Itoa(int(dbMovie.Year)),
+			Year:  strconv.Itoa(int(nullInt32(dbMovie.Year))),
 		}
 		res = append(res, movie)
 	}
