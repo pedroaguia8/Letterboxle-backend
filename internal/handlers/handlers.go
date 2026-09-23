@@ -16,6 +16,7 @@ type ApiConfig struct {
 }
 
 type Movie struct {
+	ID        int32    `json:"id"`
 	Title     string   `json:"title"`
 	Tagline   string   `json:"tagline"`
 	Genres    []string `json:"genres"`
@@ -29,6 +30,7 @@ type Movie struct {
 
 func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
 	return Movie{
+		ID:        dbMovie.ID,
 		Title:     dbMovie.Title,
 		Tagline:   nullString(dbMovie.Tagline),
 		Genres:    genreNames(dbMovie.Genres),

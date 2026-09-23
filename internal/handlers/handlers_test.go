@@ -17,6 +17,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 	}{
 		"complete_movie": {
 			input: database.GetMovieOfTheDayRow{
+				ID:      603,
 				Title:   "The Matrix",
 				Tagline: sql.NullString{String: "Welcome to the Real World", Valid: true},
 				Genres: pqtype.NullRawMessage{
@@ -33,6 +34,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 				},
 			},
 			want: Movie{
+				ID:        603,
 				Title:     "The Matrix",
 				Tagline:   "Welcome to the Real World",
 				Genres:    []string{"Sci-Fi"},
@@ -46,6 +48,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 		},
 		"null_poster": {
 			input: database.GetMovieOfTheDayRow{
+				ID:    550,
 				Title: "Unknown",
 				Year:  sql.NullInt32{Int32: 2020, Valid: true},
 				PosterPath: sql.NullString{
@@ -54,6 +57,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 				},
 			},
 			want: Movie{
+				ID:        550,
 				Title:     "Unknown",
 				Year:      "2020",
 				PosterUrl: "",
