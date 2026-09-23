@@ -16,7 +16,7 @@ type Movie struct {
 	Title               string
 	Year                sql.NullInt32
 	Tagline             sql.NullString
-	Genres              sql.NullString
+	Genres              pqtype.NullRawMessage
 	Budget              sql.NullInt64
 	Director            sql.NullString
 	Actor1              sql.NullString

@@ -20,22 +20,22 @@ type ApiConfig struct {
 }
 
 type Movie struct {
-	Title     string `json:"title"`
-	Tagline   string `json:"tagline"`
-	Genres    string `json:"genres"`
-	Director  string `json:"director"`
-	Actor1    string `json:"actor1"`
-	Actor2    string `json:"actor2"`
-	Year      string `json:"year"`
-	PosterUrl string `json:"poster_url"`
-	Date      string `json:"date"`
+	Title     string   `json:"title"`
+	Tagline   string   `json:"tagline"`
+	Genres    []string `json:"genres"`
+	Director  string   `json:"director"`
+	Actor1    string   `json:"actor1"`
+	Actor2    string   `json:"actor2"`
+	Year      string   `json:"year"`
+	PosterUrl string   `json:"poster_url"`
+	Date      string   `json:"date"`
 }
 
 func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
 	return Movie{
 		Title:     dbMovie.Title,
 		Tagline:   nullString(dbMovie.Tagline),
-		Genres:    nullString(dbMovie.Genres),
+		Genres:    genreNames(dbMovie.Genres),
 		Director:  nullString(dbMovie.Director),
 		Actor1:    nullString(dbMovie.Actor1),
 		Actor2:    nullString(dbMovie.Actor2),

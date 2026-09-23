@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pedroaguia8/Letterboxle-backend/internal/database"
+	"github.com/sqlc-dev/pqtype"
 )
 
 func TestDbMovieOfTheDayToMovie(t *testing.T) {
@@ -16,9 +17,12 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 	}{
 		"complete_movie": {
 			input: database.GetMovieOfTheDayRow{
-				Title:    "The Matrix",
-				Tagline:  sql.NullString{String: "Welcome to the Real World", Valid: true},
-				Genres:   sql.NullString{String: "Sci-Fi", Valid: true},
+				Title:   "The Matrix",
+				Tagline: sql.NullString{String: "Welcome to the Real World", Valid: true},
+				Genres: pqtype.NullRawMessage{
+					RawMessage: []byte(`[{"id":878,"name":"Sci-Fi"}]`),
+					Valid:      true,
+				},
 				Director: sql.NullString{String: "Wachowskis", Valid: true},
 				Actor1:   sql.NullString{String: "Keanu Reeves", Valid: true},
 				Actor2:   sql.NullString{String: "Laurence Fishburne", Valid: true},
@@ -31,7 +35,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 			want: Movie{
 				Title:     "The Matrix",
 				Tagline:   "Welcome to the Real World",
-				Genres:    "Sci-Fi",
+				Genres:    []string{"Sci-Fi"},
 				Director:  "Wachowskis",
 				Actor1:    "Keanu Reeves",
 				Actor2:    "Laurence Fishburne",

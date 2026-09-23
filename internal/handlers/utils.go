@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/sqlc-dev/pqtype"
 )
 
 func nullString(ns sql.NullString) string {
@@ -19,6 +21,26 @@ func nullInt32(ni sql.NullInt32) int32 {
 		return ni.Int32
 	}
 	return 0
+}
+
+// genreNames extracts the names out of a genres JSONB column storing TMDB's
+// [{"id":..,"name":..}, ...] genre objects, keeping the ids in the DB for
+// future filtering while the API only needs the names.
+func genreNames(genres pqtype.NullRawMessage) []string {
+	if !genres.Valid {
+		return nil
+	}
+	var parsed []struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(genres.RawMessage, &parsed); err != nil {
+		return nil
+	}
+	names := make([]string, len(parsed))
+	for i, g := range parsed {
+		names[i] = g.Name
+	}
+	return names
 }
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) error {

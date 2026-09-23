@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/sqlc-dev/pqtype"
 )
 
 const getMovieOfTheDay = `-- name: GetMovieOfTheDay :one
@@ -32,7 +34,7 @@ type GetMovieOfTheDayRow struct {
 	ID        int32
 	Title     string
 	Tagline   sql.NullString
-	Genres    sql.NullString
+	Genres    pqtype.NullRawMessage
 	Director  sql.NullString
 	Actor1    sql.NullString
 	Actor2    sql.NullString
