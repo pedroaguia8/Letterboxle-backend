@@ -23,7 +23,7 @@ SELECT
     movies.actor1,
     movies.actor2,
     movies.year,
-    movies.poster_url
+    movies.poster_path
 FROM movie_of_the_day
 INNER JOIN movies
 ON movie_of_the_day.movie_id = movies.id
@@ -31,15 +31,15 @@ WHERE movie_of_the_day.date = $1
 `
 
 type GetMovieOfTheDayRow struct {
-	ID        int32
-	Title     string
-	Tagline   sql.NullString
-	Genres    pqtype.NullRawMessage
-	Director  sql.NullString
-	Actor1    sql.NullString
-	Actor2    sql.NullString
-	Year      sql.NullInt32
-	PosterUrl sql.NullString
+	ID         int32
+	Title      string
+	Tagline    sql.NullString
+	Genres     pqtype.NullRawMessage
+	Director   sql.NullString
+	Actor1     sql.NullString
+	Actor2     sql.NullString
+	Year       sql.NullInt32
+	PosterPath sql.NullString
 }
 
 func (q *Queries) GetMovieOfTheDay(ctx context.Context, date time.Time) (GetMovieOfTheDayRow, error) {
@@ -54,7 +54,7 @@ func (q *Queries) GetMovieOfTheDay(ctx context.Context, date time.Time) (GetMovi
 		&i.Actor1,
 		&i.Actor2,
 		&i.Year,
-		&i.PosterUrl,
+		&i.PosterPath,
 	)
 	return i, err
 }

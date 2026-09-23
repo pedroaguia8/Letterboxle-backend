@@ -8,7 +8,7 @@ SELECT
     movies.actor1,
     movies.actor2,
     movies.year,
-    movies.poster_url
+    movies.poster_path
 FROM movie_of_the_day
 INNER JOIN movies
 ON movie_of_the_day.movie_id = movies.id

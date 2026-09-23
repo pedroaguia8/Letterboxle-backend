@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pedroaguia8/Letterboxle-backend/internal/tmdb"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -14,6 +15,15 @@ func nullString(ns sql.NullString) string {
 		return ns.String
 	}
 	return ""
+}
+
+// posterURL builds the full TMDB poster URL from a movie's poster_path, or
+// "" if it's missing.
+func posterURL(posterPath sql.NullString) string {
+	if !posterPath.Valid {
+		return ""
+	}
+	return tmdb.ImageBaseURL + posterPath.String
 }
 
 func nullInt32(ni sql.NullInt32) int32 {

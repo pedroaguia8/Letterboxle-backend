@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	"strconv"
@@ -9,14 +8,12 @@ import (
 	"time"
 
 	"github.com/pedroaguia8/Letterboxle-backend/internal/database"
-	"github.com/pedroaguia8/Letterboxle-backend/internal/workers"
 )
 
 type ApiConfig struct {
-	Db            *database.Queries
-	Platform      string
-	Port          string
-	PosterFetcher *workers.PosterFetcher
+	Db       *database.Queries
+	Platform string
+	Port     string
 }
 
 type Movie struct {
@@ -40,7 +37,7 @@ func dbMovieOfTheDayToMovie(dbMovie database.GetMovieOfTheDayRow) Movie {
 		Actor1:    nullString(dbMovie.Actor1),
 		Actor2:    nullString(dbMovie.Actor2),
 		Year:      strconv.Itoa(int(nullInt32(dbMovie.Year))),
-		PosterUrl: nullString(dbMovie.PosterUrl),
+		PosterUrl: posterURL(dbMovie.PosterPath),
 	}
 }
 
@@ -68,16 +65,6 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 			return
 		}
 		return
-	}
-
-	if !dbMovie.PosterUrl.Valid {
-		log.Printf("Poster missing for %s, fetching on demand", dbMovie.Title)
-		posterURL, err := cfg.PosterFetcher.EnsurePosterURL(req.Context(), dbMovie.ID, dbMovie.Title, nullInt32(dbMovie.Year), dbMovie.PosterUrl)
-		if err != nil {
-			log.Printf("Failed to fetch on-demand poster: %v", err)
-		} else {
-			dbMovie.PosterUrl = sql.NullString{String: posterURL, Valid: true}
-		}
 	}
 
 	movie := dbMovieOfTheDayToMovie(dbMovie)

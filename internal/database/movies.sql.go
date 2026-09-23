@@ -62,18 +62,18 @@ func (q *Queries) GetAllMovieIDs(ctx context.Context) ([]int32, error) {
 const insertMovie = `-- name: InsertMovie :exec
 INSERT INTO movies (
     id, title, year, tagline, genres, budget, director, actor1, actor2,
-    popularity, poster_url, original_title, original_language, overview,
+    popularity, original_title, original_language, overview,
     status, homepage, imdb_id, release_date, runtime, revenue, vote_average,
     vote_count, adult, video, poster_path, backdrop_path,
     belongs_to_collection, production_companies, production_countries,
     spoken_languages, origin_country, credits_cast, credits_crew
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9,
-    $10, $11, $12, $13, $14,
-    $15, $16, $17, $18, $19, $20, $21,
-    $22, $23, $24, $25, $26,
-    $27, $28, $29,
-    $30, $31, $32, $33
+    $10, $11, $12, $13,
+    $14, $15, $16, $17, $18, $19, $20,
+    $21, $22, $23, $24, $25,
+    $26, $27, $28,
+    $29, $30, $31, $32
 )
 ON CONFLICT (id) DO NOTHING
 `
@@ -89,7 +89,6 @@ type InsertMovieParams struct {
 	Actor1              sql.NullString
 	Actor2              sql.NullString
 	Popularity          sql.NullFloat64
-	PosterUrl           sql.NullString
 	OriginalTitle       sql.NullString
 	OriginalLanguage    sql.NullString
 	Overview            sql.NullString
@@ -126,7 +125,6 @@ func (q *Queries) InsertMovie(ctx context.Context, arg InsertMovieParams) error 
 		arg.Actor1,
 		arg.Actor2,
 		arg.Popularity,
-		arg.PosterUrl,
 		arg.OriginalTitle,
 		arg.OriginalLanguage,
 		arg.Overview,
@@ -208,20 +206,4 @@ func (q *Queries) SearchMovies(ctx context.Context, title string) ([]SearchMovie
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateMoviePoster = `-- name: UpdateMoviePoster :exec
-UPDATE movies
-SET poster_url = $1
-WHERE id = $2
-`
-
-type UpdateMoviePosterParams struct {
-	PosterUrl sql.NullString
-	ID        int32
-}
-
-func (q *Queries) UpdateMoviePoster(ctx context.Context, arg UpdateMoviePosterParams) error {
-	_, err := q.db.ExecContext(ctx, updateMoviePoster, arg.PosterUrl, arg.ID)
-	return err
 }

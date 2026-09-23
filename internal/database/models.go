@@ -22,7 +22,6 @@ type Movie struct {
 	Actor1              sql.NullString
 	Actor2              sql.NullString
 	Popularity          sql.NullFloat64
-	PosterUrl           sql.NullString
 	OriginalTitle       sql.NullString
 	OriginalLanguage    sql.NullString
 	Overview            sql.NullString

@@ -27,8 +27,8 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 				Actor1:   sql.NullString{String: "Keanu Reeves", Valid: true},
 				Actor2:   sql.NullString{String: "Laurence Fishburne", Valid: true},
 				Year:     sql.NullInt32{Int32: 1999, Valid: true},
-				PosterUrl: sql.NullString{
-					String: "http://poster.url",
+				PosterPath: sql.NullString{
+					String: "/matrix.jpg",
 					Valid:  true,
 				},
 			},
@@ -40,7 +40,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 				Actor1:    "Keanu Reeves",
 				Actor2:    "Laurence Fishburne",
 				Year:      "1999",
-				PosterUrl: "http://poster.url",
+				PosterUrl: "https://image.tmdb.org/t/p/w500/matrix.jpg",
 				Date:      "", // The function doesn't set Date, so we expect empty
 			},
 		},
@@ -48,7 +48,7 @@ func TestDbMovieOfTheDayToMovie(t *testing.T) {
 			input: database.GetMovieOfTheDayRow{
 				Title: "Unknown",
 				Year:  sql.NullInt32{Int32: 2020, Valid: true},
-				PosterUrl: sql.NullString{
+				PosterPath: sql.NullString{
 					String: "",
 					Valid:  false,
 				},

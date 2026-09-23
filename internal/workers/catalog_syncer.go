@@ -2,7 +2,6 @@ package workers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"time"
@@ -128,11 +127,6 @@ func (cs *CatalogSyncer) StartWorker(ctx context.Context) {
 }
 
 func insertMovieParams(d tmdb.MovieDetails) database.InsertMovieParams {
-	posterURL := sql.NullString{}
-	if d.PosterPath.Valid {
-		posterURL = sql.NullString{String: tmdb.ImageBaseURL + d.PosterPath.String, Valid: true}
-	}
-
 	return database.InsertMovieParams{
 		ID:                  d.ID,
 		Title:               d.Title,
@@ -144,7 +138,6 @@ func insertMovieParams(d tmdb.MovieDetails) database.InsertMovieParams {
 		Actor1:              d.Actor1,
 		Actor2:              d.Actor2,
 		Popularity:          d.Popularity,
-		PosterUrl:           posterURL,
 		OriginalTitle:       d.OriginalTitle,
 		OriginalLanguage:    d.OriginalLanguage,
 		Overview:            d.Overview,

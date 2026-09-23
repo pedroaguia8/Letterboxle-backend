@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -125,35 +124,6 @@ func (c *Client) retryAfter(resp *http.Response) time.Duration {
 		}
 	}
 	return c.retryDelay
-}
-
-type SearchResponse struct {
-	Results []struct {
-		PosterPath string `json:"poster_path"`
-	} `json:"results"`
-}
-
-func (c *Client) SearchMovie(ctx context.Context, title string, year int) (string, error) {
-	searchURL := fmt.Sprintf("%s/search/movie?query=%s&year=%d",
-		c.baseURL,
-		url.QueryEscape(title),
-		year,
-	)
-
-	searchRes := SearchResponse{}
-	if err := c.doGet(ctx, searchURL, &searchRes); err != nil {
-		return "", err
-	}
-
-	if len(searchRes.Results) == 0 {
-		return "", errors.New("no poster found")
-	}
-	if searchRes.Results[0].PosterPath == "" {
-		return "", errors.New("no poster found")
-	}
-
-	posterURL := ImageBaseURL + searchRes.Results[0].PosterPath
-	return posterURL, nil
 }
 
 type DiscoverResponse struct {
