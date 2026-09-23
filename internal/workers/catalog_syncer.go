@@ -22,7 +22,7 @@ const (
 	// syncRetryInterval is how soon Sync retries after a failed run, so a
 	// worker that starts before migrations have finished (or hits a
 	// transient TMDB/DB error) doesn't wait a full week to try again.
-	syncRetryInterval = 15 * time.Minute
+	syncRetryInterval = 5 * time.Minute
 )
 
 type CatalogSyncer struct {
