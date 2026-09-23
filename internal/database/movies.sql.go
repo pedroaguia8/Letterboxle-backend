@@ -133,6 +133,28 @@ func (q *Queries) InsertMovie(ctx context.Context, arg InsertMovieParams) error 
 	return err
 }
 
+const pickRandomUnusedMovie = `-- name: PickRandomUnusedMovie :one
+SELECT id
+FROM movies
+WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
+    AND tagline IS NOT NULL
+    AND genres IS NOT NULL
+    AND director IS NOT NULL
+    AND actor1 IS NOT NULL
+    AND actor2 IS NOT NULL
+    AND year IS NOT NULL
+    AND poster_path IS NOT NULL
+ORDER BY random()
+LIMIT 1
+`
+
+func (q *Queries) PickRandomUnusedMovie(ctx context.Context) (int32, error) {
+	row := q.db.QueryRowContext(ctx, pickRandomUnusedMovie)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
 const searchMovies = `-- name: SearchMovies :many
 SELECT title, year
 FROM movies

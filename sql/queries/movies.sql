@@ -12,6 +12,20 @@ WHERE id = $2;
 -- name: GetAllMovieIDs :many
 SELECT id FROM movies;
 
+-- name: PickRandomUnusedMovie :one
+SELECT id
+FROM movies
+WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
+    AND tagline IS NOT NULL
+    AND genres IS NOT NULL
+    AND director IS NOT NULL
+    AND actor1 IS NOT NULL
+    AND actor2 IS NOT NULL
+    AND year IS NOT NULL
+    AND poster_path IS NOT NULL
+ORDER BY random()
+LIMIT 1;
+
 -- name: InsertMovie :exec
 INSERT INTO movies (
     id, title, year, tagline, genres, budget, director, actor1, actor2,
