@@ -13,3 +13,13 @@ FROM movie_of_the_day
 INNER JOIN movies
 ON movie_of_the_day.movie_id = movies.id
 WHERE movie_of_the_day.date = $1;
+
+-- name: GetMovieOfTheDayDatesInRange :many
+SELECT date
+FROM movie_of_the_day
+WHERE date >= $1 AND date <= $2;
+
+-- name: InsertMovieOfTheDay :exec
+INSERT INTO movie_of_the_day (date, movie_id)
+VALUES ($1, $2)
+ON CONFLICT (date) DO NOTHING;

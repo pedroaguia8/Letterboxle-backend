@@ -58,3 +58,53 @@ func (q *Queries) GetMovieOfTheDay(ctx context.Context, date time.Time) (GetMovi
 	)
 	return i, err
 }
+
+const getMovieOfTheDayDatesInRange = `-- name: GetMovieOfTheDayDatesInRange :many
+SELECT date
+FROM movie_of_the_day
+WHERE date >= $1 AND date <= $2
+`
+
+type GetMovieOfTheDayDatesInRangeParams struct {
+	Date   time.Time
+	Date_2 time.Time
+}
+
+func (q *Queries) GetMovieOfTheDayDatesInRange(ctx context.Context, arg GetMovieOfTheDayDatesInRangeParams) ([]time.Time, error) {
+	rows, err := q.db.QueryContext(ctx, getMovieOfTheDayDatesInRange, arg.Date, arg.Date_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []time.Time
+	for rows.Next() {
+		var date time.Time
+		if err := rows.Scan(&date); err != nil {
+			return nil, err
+		}
+		items = append(items, date)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertMovieOfTheDay = `-- name: InsertMovieOfTheDay :exec
+INSERT INTO movie_of_the_day (date, movie_id)
+VALUES ($1, $2)
+ON CONFLICT (date) DO NOTHING
+`
+
+type InsertMovieOfTheDayParams struct {
+	Date    time.Time
+	MovieID int32
+}
+
+func (q *Queries) InsertMovieOfTheDay(ctx context.Context, arg InsertMovieOfTheDayParams) error {
+	_, err := q.db.ExecContext(ctx, insertMovieOfTheDay, arg.Date, arg.MovieID)
+	return err
+}

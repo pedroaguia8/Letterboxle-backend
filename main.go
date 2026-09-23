@@ -48,6 +48,9 @@ func main() {
 	catalogSyncer := workers.NewCatalogSyncer(dbQueries, os.Getenv("TMDB_API_READ_ACCESS_TOKEN"))
 	catalogSyncer.StartWorker(ctx)
 
+	selector := workers.NewSelector(dbQueries)
+	selector.StartWorker(ctx)
+
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /api/movie_of_the_day/{date}", http.HandlerFunc(apiConfig.GetMovieOfTheDay))

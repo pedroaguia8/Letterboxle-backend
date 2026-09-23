@@ -12,6 +12,26 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+const countEligibleUnusedMovies = `-- name: CountEligibleUnusedMovies :one
+SELECT COUNT(*)
+FROM movies
+WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
+    AND tagline IS NOT NULL
+    AND genres IS NOT NULL
+    AND director IS NOT NULL
+    AND actor1 IS NOT NULL
+    AND actor2 IS NOT NULL
+    AND year IS NOT NULL
+    AND poster_path IS NOT NULL
+`
+
+func (q *Queries) CountEligibleUnusedMovies(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countEligibleUnusedMovies)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getAllMovieIDs = `-- name: GetAllMovieIDs :many
 SELECT id FROM movies
 `

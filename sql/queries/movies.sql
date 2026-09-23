@@ -26,6 +26,18 @@ WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
 ORDER BY random()
 LIMIT 1;
 
+-- name: CountEligibleUnusedMovies :one
+SELECT COUNT(*)
+FROM movies
+WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
+    AND tagline IS NOT NULL
+    AND genres IS NOT NULL
+    AND director IS NOT NULL
+    AND actor1 IS NOT NULL
+    AND actor2 IS NOT NULL
+    AND year IS NOT NULL
+    AND poster_path IS NOT NULL;
+
 -- name: InsertMovie :exec
 INSERT INTO movies (
     id, title, year, tagline, genres, budget, director, actor1, actor2,
