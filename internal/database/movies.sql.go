@@ -151,6 +151,41 @@ func (q *Queries) InsertMovie(ctx context.Context, arg InsertMovieParams) error 
 	return err
 }
 
+const listAllMovies = `-- name: ListAllMovies :many
+SELECT id, title, year
+FROM movies
+ORDER BY title
+`
+
+type ListAllMoviesRow struct {
+	ID    int32
+	Title string
+	Year  sql.NullInt32
+}
+
+func (q *Queries) ListAllMovies(ctx context.Context) ([]ListAllMoviesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAllMovies)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllMoviesRow
+	for rows.Next() {
+		var i ListAllMoviesRow
+		if err := rows.Scan(&i.ID, &i.Title, &i.Year); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const pickRandomUnusedMovie = `-- name: PickRandomUnusedMovie :one
 SELECT id
 FROM movies
@@ -171,39 +206,4 @@ func (q *Queries) PickRandomUnusedMovie(ctx context.Context) (int32, error) {
 	var id int32
 	err := row.Scan(&id)
 	return id, err
-}
-
-const searchMovies = `-- name: SearchMovies :many
-SELECT title, year
-FROM movies
-WHERE title ILIKE $1
-LIMIT 20
-`
-
-type SearchMoviesRow struct {
-	Title string
-	Year  sql.NullInt32
-}
-
-func (q *Queries) SearchMovies(ctx context.Context, title string) ([]SearchMoviesRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchMovies, title)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []SearchMoviesRow
-	for rows.Next() {
-		var i SearchMoviesRow
-		if err := rows.Scan(&i.Title, &i.Year); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

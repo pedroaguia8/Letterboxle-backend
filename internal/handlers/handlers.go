@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/pedroaguia8/Letterboxle-backend/internal/database"
@@ -82,25 +81,14 @@ func (cfg *ApiConfig) GetMovieOfTheDay(w http.ResponseWriter, req *http.Request)
 	}
 }
 
-func (cfg *ApiConfig) SearchMovies(w http.ResponseWriter, req *http.Request) {
-	searchQuery := req.URL.Query().Get("search_query")
-
-	if searchQuery == "" {
-		err := RespondWithJSON(w, http.StatusOK, []interface{}{})
-		if err != nil {
-			log.Printf("Failed to send error response to client: %v", err)
-			return
-		}
-		return
-	}
-
-	searchWords := strings.Fields(searchQuery)
-	searchPattern := "%" + strings.Join(searchWords, "%") + "%"
-
-	dbMovies, err := cfg.Db.SearchMovies(req.Context(), searchPattern)
+// ListMovies serves the full lightweight movie list (id, title, year) for the
+// frontend's one-time autocomplete fetch. Cached for a few hours since the
+// catalog only changes on the weekly sync.
+func (cfg *ApiConfig) ListMovies(w http.ResponseWriter, req *http.Request) {
+	dbMovies, err := cfg.Db.ListAllMovies(req.Context())
 	if err != nil {
-		log.Printf("ERROR: Failed to search movies from database: %v", err)
-		err := RespondWithError(w, http.StatusBadRequest, "Failed to get movies")
+		log.Printf("ERROR: Failed to list movies from database: %v", err)
+		err := RespondWithError(w, http.StatusInternalServerError, "Failed to get movies")
 		if err != nil {
 			log.Printf("Failed to send error response to client: %v", err)
 			return
@@ -109,17 +97,20 @@ func (cfg *ApiConfig) SearchMovies(w http.ResponseWriter, req *http.Request) {
 	}
 
 	type movieDto struct {
+		ID    int32  `json:"id"`
 		Title string `json:"title"`
 		Year  string `json:"year"`
 	}
-	res := []movieDto{}
+	res := make([]movieDto, 0, len(dbMovies))
 	for _, dbMovie := range dbMovies {
-		movie := movieDto{
+		res = append(res, movieDto{
+			ID:    dbMovie.ID,
 			Title: dbMovie.Title,
 			Year:  strconv.Itoa(int(nullInt32(dbMovie.Year))),
-		}
-		res = append(res, movie)
+		})
 	}
+
+	w.Header().Set("Cache-Control", "public, max-age=14400")
 
 	err = RespondWithJSON(w, http.StatusOK, res)
 	if err != nil {

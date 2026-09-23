@@ -50,7 +50,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /api/movie_of_the_day/{date}", http.HandlerFunc(apiConfig.GetMovieOfTheDay))
-	mux.Handle("GET /api/movies", http.HandlerFunc(apiConfig.SearchMovies))
+	mux.Handle("GET /api/movies", http.HandlerFunc(apiConfig.ListMovies))
 
 	server := http.Server{
 		Addr:              ":" + apiConfig.Port,

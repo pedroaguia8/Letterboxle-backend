@@ -1,8 +1,7 @@
--- name: SearchMovies :many
-SELECT title, year
+-- name: ListAllMovies :many
+SELECT id, title, year
 FROM movies
-WHERE title ILIKE $1
-LIMIT 20;
+ORDER BY title;
 
 -- name: GetAllMovieIDs :many
 SELECT id FROM movies;
