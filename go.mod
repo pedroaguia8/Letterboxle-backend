@@ -9,3 +9,5 @@ require (
 )
 
 require github.com/sqlc-dev/pqtype v0.3.0
+
+require golang.org/x/time v0.16.0

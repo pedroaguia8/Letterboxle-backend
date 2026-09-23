@@ -196,6 +196,64 @@ func TestDiscoverMovies(t *testing.T) {
 	}
 }
 
+func TestDoGetRetriesOn429(t *testing.T) {
+	tests := map[string]struct {
+		retryAfterHeader  string
+		requestsBefore200 int
+		wantErr           bool
+	}{
+		"retries_with_retry_after_header": {
+			retryAfterHeader:  "0",
+			requestsBefore200: 2,
+		},
+		"retries_with_no_retry_after_header": {
+			requestsBefore200: 1,
+		},
+		"gives_up_after_max_retries": {
+			retryAfterHeader:  "0",
+			requestsBefore200: maxRetries + 1,
+			wantErr:           true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			requestCount := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requestCount++
+				if requestCount <= tc.requestsBefore200 {
+					if tc.retryAfterHeader != "" {
+						w.Header().Set("Retry-After", tc.retryAfterHeader)
+					}
+					w.WriteHeader(http.StatusTooManyRequests)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"results": [{"poster_path": "/inception.jpg"}]}`))
+			}))
+			defer server.Close()
+
+			client := NewClient("fake-api-key")
+			client.SetBaseURL(server.URL)
+			client.SetRetryDelay(0)
+
+			got, err := client.SearchMovie(context.Background(), "Inception", 2010)
+
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("SearchMovie() error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if tc.wantErr {
+				return
+			}
+
+			wantPosterURL := "https://image.tmdb.org/t/p/w500/inception.jpg"
+			if diff := cmp.Diff(wantPosterURL, got); diff != "" {
+				t.Errorf("SearchMovie() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestGetMovieDetails(t *testing.T) {
 	timeComparer := cmp.Comparer(func(a, b time.Time) bool { return a.Equal(b) })
 

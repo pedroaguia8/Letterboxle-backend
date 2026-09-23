@@ -10,18 +10,31 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/sqlc-dev/pqtype"
+	"golang.org/x/time/rate"
 )
 
 const DefaultBaseURL = "https://api.themoviedb.org/3"
 const ImageBaseURL = "https://image.tmdb.org/t/p/w500"
 
+// TMDB doesn't publish a hard rate limit; their docs describe "somewhere in
+// the 40 requests per second range" for bulk use, so stay comfortably under
+// it rather than trying to hug the exact number.
+const requestsPerSecond = 30
+const maxRetries = 5
+const defaultRetryDelay = 1 * time.Second
+
 type Client struct {
 	readAccessToken string
 	baseURL         string
 	httpClient      *http.Client
+	limiter         *rate.Limiter
+	// retryDelay is the fallback backoff used when a 429 response carries no
+	// Retry-After header. Overridable for tests.
+	retryDelay time.Duration
 }
 
 func NewClient(readAccessToken string) *Client {
@@ -29,12 +42,89 @@ func NewClient(readAccessToken string) *Client {
 		readAccessToken: readAccessToken,
 		baseURL:         DefaultBaseURL,
 		httpClient:      &http.Client{},
+		limiter:         rate.NewLimiter(rate.Limit(requestsPerSecond), 1),
+		retryDelay:      defaultRetryDelay,
 	}
 }
 
 // Helper for tests to override the URL
 func (c *Client) SetBaseURL(url string) {
 	c.baseURL = url
+}
+
+// Helper for tests to avoid waiting out the real fallback retry delay.
+func (c *Client) SetRetryDelay(d time.Duration) {
+	c.retryDelay = d
+}
+
+// doGet issues a GET request against the given URL with standard TMDB
+// headers, throttled to requestsPerSecond and retried on 429 (honouring
+// Retry-After when present), and decodes a 200 response into out.
+func (c *Client) doGet(ctx context.Context, requestURL string, out any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("accept", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.readAccessToken))
+
+	resp, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("TMDB API returned status: %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+	return nil
+}
+
+// do sends req, waiting on the rate limiter first, and retries on 429 up to
+// maxRetries times.
+func (c *Client) do(req *http.Request) (*http.Response, error) {
+	for attempt := 0; ; attempt++ {
+		if err := c.limiter.Wait(req.Context()); err != nil {
+			return nil, fmt.Errorf("rate limiter wait failed: %w", err)
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch from TMDB: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusTooManyRequests {
+			return resp, nil
+		}
+
+		wait := c.retryAfter(resp)
+		_ = resp.Body.Close()
+
+		if attempt >= maxRetries {
+			return nil, fmt.Errorf("TMDB API returned status 429 after %d retries", attempt)
+		}
+
+		select {
+		case <-req.Context().Done():
+			return nil, req.Context().Err()
+		case <-time.After(wait):
+		}
+	}
+}
+
+func (c *Client) retryAfter(resp *http.Response) time.Duration {
+	if v := resp.Header.Get("Retry-After"); v != "" {
+		if secs, err := strconv.Atoi(v); err == nil {
+			return time.Duration(secs) * time.Second
+		}
+	}
+	return c.retryDelay
 }
 
 type SearchResponse struct {
@@ -50,29 +140,9 @@ func (c *Client) SearchMovie(ctx context.Context, title string, year int) (strin
 		year,
 	)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", searchURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.readAccessToken))
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch from TMDB: %w", err)
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("TMDB API returned status: %d", resp.StatusCode)
-	}
-
 	searchRes := SearchResponse{}
-	if err := json.NewDecoder(resp.Body).Decode(&searchRes); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
+	if err := c.doGet(ctx, searchURL, &searchRes); err != nil {
+		return "", err
 	}
 
 	if len(searchRes.Results) == 0 {
@@ -111,29 +181,9 @@ func (c *Client) DiscoverMovies(ctx context.Context, voteCountGte int, sortBy st
 		page,
 	)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", discoverURL, nil)
-	if err != nil {
-		return DiscoverResult{}, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.readAccessToken))
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return DiscoverResult{}, fmt.Errorf("failed to fetch from TMDB: %w", err)
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return DiscoverResult{}, fmt.Errorf("TMDB API returned status: %d", resp.StatusCode)
-	}
-
 	discoverRes := DiscoverResponse{}
-	if err := json.NewDecoder(resp.Body).Decode(&discoverRes); err != nil {
-		return DiscoverResult{}, fmt.Errorf("failed to decode response: %w", err)
+	if err := c.doGet(ctx, discoverURL, &discoverRes); err != nil {
+		return DiscoverResult{}, err
 	}
 
 	movieIDs := make([]int, len(discoverRes.Results))
@@ -225,29 +275,9 @@ type movieDetailsResponse struct {
 func (c *Client) GetMovieDetails(ctx context.Context, id int) (MovieDetails, error) {
 	detailsURL := fmt.Sprintf("%s/movie/%d?append_to_response=credits", c.baseURL, id)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", detailsURL, nil)
-	if err != nil {
-		return MovieDetails{}, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.readAccessToken))
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return MovieDetails{}, fmt.Errorf("failed to fetch from TMDB: %w", err)
-	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return MovieDetails{}, fmt.Errorf("TMDB API returned status: %d", resp.StatusCode)
-	}
-
 	var raw movieDetailsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
-		return MovieDetails{}, fmt.Errorf("failed to decode response: %w", err)
+	if err := c.doGet(ctx, detailsURL, &raw); err != nil {
+		return MovieDetails{}, err
 	}
 
 	return movieDetailsFromResponse(raw)
