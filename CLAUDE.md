@@ -46,4 +46,4 @@ Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in
 ## CI/CD
 
 - `ci.yml`: on PR/push to `main`, runs tests+gosec and separately fmt+staticcheck.
-- `cd.yml`: on push to `main`, SSHes (via cloudflared tunnel) into the prod host, pulls, rewrites `.env` from secrets, rebuilds via `docker compose up -d --build`, then runs goose migrations inside the container.
+- `cd.yml`: triggers on the `ci` workflow completing successfully on `main` (not directly on push), then SSHes (via cloudflared tunnel) into the prod host, pulls, rewrites `.env` from secrets, rebuilds via `docker compose up -d --build`, then runs goose migrations inside the container.
