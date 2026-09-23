@@ -44,7 +44,13 @@ func NewSelector(db *database.Queries) *Selector {
 // for each date that's missing one. It's idempotent: dates that already
 // have a row are left untouched, and the insert is ON CONFLICT (date) DO
 // NOTHING so overlapping runs can't clobber each other.
-func (s *Selector) Fill(ctx context.Context) error {
+//
+// The returned bool reports whether every date in the window ended up
+// filled. It's false when the catalog didn't have enough eligible movies
+// for some date (e.g. the catalog sync hasn't populated movies yet on a
+// fresh DB) — that's not an error, but StartWorker uses it to retry sooner
+// instead of waiting a full selectionInterval.
+func (s *Selector) Fill(ctx context.Context) (bool, error) {
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	lastDate := today.AddDate(0, 0, SelectionWindowDays-1)
 
@@ -53,7 +59,7 @@ func (s *Selector) Fill(ctx context.Context) error {
 		Date_2: lastDate,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to load filled dates: %w", err)
+		return false, fmt.Errorf("failed to load filled dates: %w", err)
 	}
 	// Keyed by formatted date rather than time.Time itself: lib/pq scans
 	// DATE columns into a fixed-offset Location distinct from the time.UTC
@@ -65,6 +71,7 @@ func (s *Selector) Fill(ctx context.Context) error {
 	}
 
 	picked := 0
+	allFilled := true
 	for date := today; !date.After(lastDate); date = date.AddDate(0, 0, 1) {
 		if filledDates[date.Format(time.DateOnly)] {
 			continue
@@ -74,16 +81,17 @@ func (s *Selector) Fill(ctx context.Context) error {
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				log.Printf("Selection: no eligible unused movie available for %s", date.Format(time.DateOnly))
+				allFilled = false
 				continue
 			}
-			return fmt.Errorf("failed to pick a movie for %s: %w", date.Format(time.DateOnly), err)
+			return false, fmt.Errorf("failed to pick a movie for %s: %w", date.Format(time.DateOnly), err)
 		}
 
 		if err := s.db.InsertMovieOfTheDay(ctx, database.InsertMovieOfTheDayParams{
 			Date:    date,
 			MovieID: movieID,
 		}); err != nil {
-			return fmt.Errorf("failed to insert movie of the day for %s: %w", date.Format(time.DateOnly), err)
+			return false, fmt.Errorf("failed to insert movie of the day for %s: %w", date.Format(time.DateOnly), err)
 		}
 		picked++
 	}
@@ -94,26 +102,31 @@ func (s *Selector) Fill(ctx context.Context) error {
 
 	eligible, err := s.db.CountEligibleUnusedMovies(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to count eligible unused movies: %w", err)
+		return false, fmt.Errorf("failed to count eligible unused movies: %w", err)
 	}
 	if eligible < LowEligibleWarningThreshold {
 		log.Printf("Selection: WARNING only %d eligible unused movie(s) left", eligible)
 	}
 
-	return nil
+	return allFilled, nil
 }
 
 // StartWorker runs Fill in the background: immediately at startup, then
-// every selectionInterval on success. A failed run retries after
-// selectionRetryInterval instead of waiting for the next scheduled run.
+// every selectionInterval once the window is fully filled. A failed run, or
+// one that leaves a date unfilled (e.g. the catalog sync hasn't caught up
+// yet), retries after selectionRetryInterval instead of waiting for the
+// next scheduled run.
 func (s *Selector) StartWorker(ctx context.Context) {
 	go func() {
 		log.Println("Starting selection worker (runs every 4 hours)...")
 
 		for {
 			wait := selectionInterval
-			if err := s.Fill(ctx); err != nil {
+			allFilled, err := s.Fill(ctx)
+			if err != nil {
 				log.Printf("Selection failed: %v", err)
+				wait = selectionRetryInterval
+			} else if !allFilled {
 				wait = selectionRetryInterval
 			}
 
