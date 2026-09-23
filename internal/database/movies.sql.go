@@ -8,7 +8,130 @@ package database
 import (
 	"context"
 	"database/sql"
+
+	"github.com/sqlc-dev/pqtype"
 )
+
+const getAllMovieIDs = `-- name: GetAllMovieIDs :many
+SELECT id FROM movies
+`
+
+func (q *Queries) GetAllMovieIDs(ctx context.Context) ([]int32, error) {
+	rows, err := q.db.QueryContext(ctx, getAllMovieIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int32
+	for rows.Next() {
+		var id int32
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertMovie = `-- name: InsertMovie :exec
+INSERT INTO movies (
+    id, title, year, tagline, genres, budget, director, actor1, actor2,
+    popularity, poster_url, original_title, original_language, overview,
+    status, homepage, imdb_id, release_date, runtime, revenue, vote_average,
+    vote_count, adult, video, poster_path, backdrop_path,
+    belongs_to_collection, production_companies, production_countries,
+    spoken_languages, origin_country, credits_cast, credits_crew
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9,
+    $10, $11, $12, $13, $14,
+    $15, $16, $17, $18, $19, $20, $21,
+    $22, $23, $24, $25, $26,
+    $27, $28, $29,
+    $30, $31, $32, $33
+)
+ON CONFLICT (id) DO NOTHING
+`
+
+type InsertMovieParams struct {
+	ID                  int32
+	Title               string
+	Year                sql.NullInt32
+	Tagline             sql.NullString
+	Genres              pqtype.NullRawMessage
+	Budget              sql.NullInt64
+	Director            sql.NullString
+	Actor1              sql.NullString
+	Actor2              sql.NullString
+	Popularity          sql.NullFloat64
+	PosterUrl           sql.NullString
+	OriginalTitle       sql.NullString
+	OriginalLanguage    sql.NullString
+	Overview            sql.NullString
+	Status              sql.NullString
+	Homepage            sql.NullString
+	ImdbID              sql.NullString
+	ReleaseDate         sql.NullTime
+	Runtime             sql.NullInt32
+	Revenue             sql.NullInt64
+	VoteAverage         sql.NullFloat64
+	VoteCount           sql.NullInt32
+	Adult               sql.NullBool
+	Video               sql.NullBool
+	PosterPath          sql.NullString
+	BackdropPath        sql.NullString
+	BelongsToCollection pqtype.NullRawMessage
+	ProductionCompanies pqtype.NullRawMessage
+	ProductionCountries pqtype.NullRawMessage
+	SpokenLanguages     pqtype.NullRawMessage
+	OriginCountry       pqtype.NullRawMessage
+	CreditsCast         pqtype.NullRawMessage
+	CreditsCrew         pqtype.NullRawMessage
+}
+
+func (q *Queries) InsertMovie(ctx context.Context, arg InsertMovieParams) error {
+	_, err := q.db.ExecContext(ctx, insertMovie,
+		arg.ID,
+		arg.Title,
+		arg.Year,
+		arg.Tagline,
+		arg.Genres,
+		arg.Budget,
+		arg.Director,
+		arg.Actor1,
+		arg.Actor2,
+		arg.Popularity,
+		arg.PosterUrl,
+		arg.OriginalTitle,
+		arg.OriginalLanguage,
+		arg.Overview,
+		arg.Status,
+		arg.Homepage,
+		arg.ImdbID,
+		arg.ReleaseDate,
+		arg.Runtime,
+		arg.Revenue,
+		arg.VoteAverage,
+		arg.VoteCount,
+		arg.Adult,
+		arg.Video,
+		arg.PosterPath,
+		arg.BackdropPath,
+		arg.BelongsToCollection,
+		arg.ProductionCompanies,
+		arg.ProductionCountries,
+		arg.SpokenLanguages,
+		arg.OriginCountry,
+		arg.CreditsCast,
+		arg.CreditsCrew,
+	)
+	return err
+}
 
 const searchMovies = `-- name: SearchMovies :many
 SELECT title, year
