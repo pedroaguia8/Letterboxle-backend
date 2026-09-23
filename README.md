@@ -50,7 +50,7 @@ Head to **[letterboxle.pedroaguia8.dev](https://letterboxle.pedroaguia8.dev)** a
 - **PostgreSQL** — Movie database with daily puzzle scheduling
 - **sqlc** — Type-safe SQL query generation
 - **goose** — Database migrations
-- **TMDB API** — Movie poster fetching
+- **TMDB API** — Movie catalog sourced from `/discover` and `/movie` endpoints
 - **Docker** — Containerized deployment
 - **GitHub Actions** — CI/CD pipeline with automated deployment
 
@@ -63,12 +63,12 @@ Head to **[letterboxle.pedroaguia8.dev](https://letterboxle.pedroaguia8.dev)** a
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/movie_of_the_day/today` | Returns today's movie puzzle with hints |
-| `GET /api/movies?search_query={query}` | Searches movie database for autocomplete |
+| `GET /api/movies` | Returns the full lightweight movie list (id, title, year) for client-side autocomplete |
 
 ### Architecture Highlights
 
-- **Background worker** fetches and caches movie posters from TMDB every 4 hours
-- **Fuzzy search** with PostgreSQL `ILIKE` patterns for flexible movie matching
+- **Catalog sync worker** walks TMDB's `/discover/movie` list weekly and fetches full details for any new movie, keeping the catalog current
+- **Selection worker** keeps the next 7 days of `movie_of_the_day` filled by picking a random unused, eligible movie from the catalog
 - **Graceful shutdown** ensures clean database disconnection on deploy
 - **Goose migrations** for database schema versioning
 
