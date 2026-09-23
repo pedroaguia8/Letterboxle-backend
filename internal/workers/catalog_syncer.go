@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/pedroaguia8/Letterboxle-backend/internal/database"
 	"github.com/pedroaguia8/Letterboxle-backend/internal/tmdb"
@@ -15,6 +16,15 @@ import (
 // and more years of runway before eligible movies run out (see task 8's
 // tuning pass).
 const DefaultVoteCountThreshold = 5000
+
+const (
+	// syncInterval is how often Sync re-runs after a successful run.
+	syncInterval = 7 * 24 * time.Hour
+	// syncRetryInterval is how soon Sync retries after a failed run, so a
+	// worker that starts before migrations have finished (or hits a
+	// transient TMDB/DB error) doesn't wait a full week to try again.
+	syncRetryInterval = 15 * time.Minute
+)
 
 type CatalogSyncer struct {
 	db                 *database.Queries
@@ -91,6 +101,30 @@ func (cs *CatalogSyncer) Sync(ctx context.Context) error {
 
 	log.Printf("Catalog sync: inserted %d/%d new movie(s)", inserted, len(newIDs))
 	return nil
+}
+
+// StartWorker runs Sync in the background: immediately at startup (seeding
+// an empty DB), then every syncInterval on success. A failed run retries
+// after syncRetryInterval instead of waiting for the next scheduled sync.
+func (cs *CatalogSyncer) StartWorker(ctx context.Context) {
+	go func() {
+		log.Println("Starting catalog syncer worker (runs weekly)...")
+
+		for {
+			wait := syncInterval
+			if err := cs.Sync(ctx); err != nil {
+				log.Printf("Catalog sync failed: %v", err)
+				wait = syncRetryInterval
+			}
+
+			select {
+			case <-ctx.Done():
+				log.Println("Stopping catalog syncer worker...")
+				return
+			case <-time.After(wait):
+			}
+		}
+	}()
 }
 
 func insertMovieParams(d tmdb.MovieDetails) database.InsertMovieParams {

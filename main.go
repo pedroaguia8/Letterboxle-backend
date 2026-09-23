@@ -45,6 +45,9 @@ func main() {
 	apiConfig.PosterFetcher = posterFetcher
 	posterFetcher.StartDailyWorker(ctx)
 
+	catalogSyncer := workers.NewCatalogSyncer(dbQueries, os.Getenv("TMDB_API_READ_ACCESS_TOKEN"))
+	catalogSyncer.StartWorker(ctx)
+
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /api/movie_of_the_day/{date}", http.HandlerFunc(apiConfig.GetMovieOfTheDay))
