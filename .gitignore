@@ -31,3 +31,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Claude Code local runtime state
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
