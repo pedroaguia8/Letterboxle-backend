@@ -27,8 +27,9 @@ const (
 	selectionInterval = 4 * time.Hour
 	// selectionRetryInterval is how soon Fill retries after a failed run, so
 	// a worker that starts before migrations/the catalog sync have finished
-	// doesn't wait hours to try again.
-	selectionRetryInterval = 5 * time.Minute
+	// doesn't wait hours to try again. Fill is cheap and idempotent, so this
+	// can be short.
+	selectionRetryInterval = 1 * time.Minute
 )
 
 type Selector struct {
