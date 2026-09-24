@@ -1,6 +1,8 @@
 -- name: ListAllMovies :many
 SELECT id, title, year
 FROM movies
+WHERE adult IS NOT TRUE
+    AND video IS NOT TRUE
 ORDER BY title;
 
 -- name: GetAllMovieIDs :many
@@ -17,6 +19,8 @@ WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
     AND actor2 IS NOT NULL
     AND year IS NOT NULL
     AND poster_path IS NOT NULL
+    AND adult IS NOT TRUE
+    AND video IS NOT TRUE
 ORDER BY random()
 LIMIT 1;
 
@@ -30,7 +34,9 @@ WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
     AND actor1 IS NOT NULL
     AND actor2 IS NOT NULL
     AND year IS NOT NULL
-    AND poster_path IS NOT NULL;
+    AND poster_path IS NOT NULL
+    AND adult IS NOT TRUE
+    AND video IS NOT TRUE;
 
 -- name: InsertMovie :exec
 INSERT INTO movies (

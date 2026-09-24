@@ -23,6 +23,8 @@ WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
     AND actor2 IS NOT NULL
     AND year IS NOT NULL
     AND poster_path IS NOT NULL
+    AND adult IS NOT TRUE
+    AND video IS NOT TRUE
 `
 
 func (q *Queries) CountEligibleUnusedMovies(ctx context.Context) (int64, error) {
@@ -154,6 +156,8 @@ func (q *Queries) InsertMovie(ctx context.Context, arg InsertMovieParams) error 
 const listAllMovies = `-- name: ListAllMovies :many
 SELECT id, title, year
 FROM movies
+WHERE adult IS NOT TRUE
+    AND video IS NOT TRUE
 ORDER BY title
 `
 
@@ -197,6 +201,8 @@ WHERE id NOT IN (SELECT movie_id FROM movie_of_the_day)
     AND actor2 IS NOT NULL
     AND year IS NOT NULL
     AND poster_path IS NOT NULL
+    AND adult IS NOT TRUE
+    AND video IS NOT TRUE
 ORDER BY random()
 LIMIT 1
 `
