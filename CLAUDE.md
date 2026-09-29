@@ -28,7 +28,7 @@ goose -dir sql/schema postgres "$DB_URL" up     # apply migrations
 sqlc generate                                    # regenerate internal/database from sql/schema + sql/queries after editing either
 ```
 
-Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in CD): `DB_URL`, `TMDB_API_READ_ACCESS_TOKEN`, `PLATFORM`, `PORT`.
+Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in CD): `DB_URL`, `TMDB_API_READ_ACCESS_TOKEN`, `PLATFORM`, `PORT`, `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT` (the Firebase Admin SDK service account key JSON, base64-encoded to fit on one line; unused until Firebase Auth wiring lands).
 
 `docker-compose.yml` is prod-shaped (builds the app image, joins the external `npm` network) and is only ever run by `cd.yml` on the prod host — never run it locally, it'll fail (no `npm` network exists locally). `docker-compose.dev.yml` is unrelated to it (not an override/layer) and only provides a disposable local Postgres for development.
 
