@@ -49,6 +49,9 @@ jobs:
           echo "  StrictHostKeyChecking yes" >> ~/.ssh/config
 
       - name: Deploy via SSH
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.TUNNEL_SERVICE_TOKEN_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.TUNNEL_SERVICE_TOKEN_SECRET }}
         run: |
           ssh "$SSH_USER@$SSH_HOST" "
             cd ~/Letterboxle-backend && \
