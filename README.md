@@ -113,9 +113,11 @@ This starts a disposable Postgres container matching the credentials already in 
 ### Run Database Migrations
 
 ```bash
-go install github.com/pressly/goose/v3/cmd/goose@latest
-goose -dir sql/schema postgres "$DB_URL" up
+go build -o app
+./app migrate
 ```
+
+The migrations in `sql/schema` are embedded in the binary, so no goose CLI is needed. The server refuses to start while any are pending.
 
 ### Build and Run
 
