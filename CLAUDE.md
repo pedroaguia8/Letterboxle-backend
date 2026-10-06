@@ -44,6 +44,11 @@ Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in
 - `movies.genres` and the other nested TMDB fields (`credits_cast`, `credits_crew`, `production_companies`, `belongs_to_collection`, etc.) are JSONB columns holding TMDB's raw objects verbatim. `handlers.genreNames` unpacks `genres` into a `[]string` of names for the API DTO; ids stay in the DB unused for now, kept for future filtering.
 - `GET /api/movies` (`ListMovies`) returns the full lightweight movie list (id, title, year) with a `Cache-Control` header, for the frontend to fetch once and filter client-side; there's no server-side search endpoint anymore.
 
+## Migrations
+
+- **Every migration must be backward-compatible with the code already deployed (expand/contract).** During a deploy, old code and the new schema briefly run together, and rolling back to a previous image rolls back the code but not the schema. So a breaking change is split across deploys: first add the new thing (nullable column, new table) and ship code that stops depending on the old thing; only in a later deploy drop or rename the old column or tighten the constraint. Never drop or rename something the currently deployed code still reads or writes.
+- Prod is forward-only: never edit a migration that has already run in prod, and fix mistakes with a new migration. Down blocks are for local dev only.
+
 ## CI/CD
 
 - `ci.yml`: on PR/push to `main`, runs tests+gosec and separately fmt+staticcheck.
