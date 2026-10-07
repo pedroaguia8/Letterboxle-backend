@@ -56,3 +56,10 @@ Tests use their own variable, `TEST_DB_URL` (in `.env` locally, set by `ci.yml` 
 - `ci.yml`: on PR/push to `main`, runs tests+gosec and separately fmt+staticcheck.
 - `cd.yml`: triggers on the `ci` workflow completing successfully on `main` (not directly on push), then SSHes (via cloudflared tunnel) into the prod host, pulls, rewrites `.env` from secrets, builds the image, runs `app migrate` in a throwaway container (`docker compose run --rm`) while the old app keeps serving, and only then switches over with `docker compose up -d`. If migrations fail the deploy stops there.
 - The frontend repo (`../Letterboxle-frontend`) has its own `ci.yml`/`cd.yml` built the same way. They deploy to `~/Letterboxle-frontend` on the same host and use the same four `SSH_*` secrets, which are set separately in each repo. The only key in the host's `authorized_keys` is the personal `id_ed25519`, so both repos' `SSH_PRIVATE_KEY` hold that key.
+
+## Git workflow
+
+- `main` is the only long-lived branch. Every change goes on a short-lived branch and into `main` through a PR, never as a direct push. Merging to `main` deploys to prod.
+- Merge PRs with a rebase merge (linear history, no merge commits), and delete the branch once it's merged.
+- Don't leave branches lying around. If one exists, check whether it's already in `main` (`git log main..<branch>`) and either open a PR for it or delete it.
+- The same rules apply to the frontend repo (`../Letterboxle-frontend`).
