@@ -13,6 +13,23 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
 
+    # Disposable Postgres for tests that need a database (TEST_DB_URL below).
+    # They create and drop their own throwaway databases on it.
+    services:
+      postgres:
+        image: postgres:18.4
+        env:
+          POSTGRES_USER: letterboxle
+          POSTGRES_PASSWORD: letterboxle
+          POSTGRES_DB: letterboxle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U letterboxle"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -26,6 +43,8 @@ jobs:
         run: go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
 
       - name: Run the tests
+        env:
+          TEST_DB_URL: postgres://letterboxle:letterboxle@localhost:5432/postgres?sslmode=disable
         run: go test ./... -cover
 
       - name: Run the security check

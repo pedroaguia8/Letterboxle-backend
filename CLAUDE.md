@@ -13,7 +13,7 @@ Go backend for Letterboxle, a daily Wordle-style movie-guessing game. Serves a J
 go build -o app && ./app                        # requires .env (see below) or env vars set
 docker compose -f docker-compose.dev.yml up -d  # start local dev Postgres (app itself still runs natively, not in Docker)
 
-# Test
+# Test (needs the dev Postgres running and TEST_DB_URL in .env)
 go test ./... -cover              # full suite
 go test ./internal/handlers/...   # single package
 go test ./internal/handlers/... -run TestDbMovieOfTheDayToMovie   # single test
@@ -29,6 +29,8 @@ sqlc generate                                    # regenerate internal/database 
 ```
 
 Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in CD): `DB_URL`, `TMDB_API_READ_ACCESS_TOKEN`, `PLATFORM`, `PORT`, `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT` (the Firebase Admin SDK service account key JSON, base64-encoded to fit on one line; unused until Firebase Auth wiring lands).
+
+Tests use their own variable, `TEST_DB_URL` (in `.env` locally, set by `ci.yml` in CI): a Postgres server, reached through its default `postgres` database, where tests create and drop their own throwaway databases. It's never the app's `DB_URL`. Tests fail (not skip) if it's missing or unreachable. CI runs a disposable Postgres service container for it.
 
 `docker-compose.yml` is prod-shaped (builds the app image, joins the external `npm` network) and is only ever run by `cd.yml` on the prod host — never run it locally, it'll fail (no `npm` network exists locally). `docker-compose.dev.yml` is unrelated to it (not an override/layer) and only provides a disposable local Postgres for development.
 
