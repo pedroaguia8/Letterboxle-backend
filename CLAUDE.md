@@ -28,6 +28,8 @@ go build -o app && ./app migrate               # apply migrations (embedded in t
 sqlc generate                                    # regenerate internal/database from sql/schema + sql/queries after editing either
 ```
 
+To test the Docker image locally (Docker Desktop runs containers in a VM, so `--network host` and `localhost` in `DB_URL` don't reach the desktop): `docker build -t letterboxle-backend:local .`, then `docker run --rm --env-file .env -e DB_URL='postgres://letterboxle:letterboxle@host.docker.internal:5432/letterboxle?sslmode=disable' -p 127.0.0.1:8080:8080 letterboxle-backend:local` (append `app migrate` to run migrations instead), and `curl localhost:8080/api/movies`.
+
 Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in CD): `DB_URL`, `TMDB_API_READ_ACCESS_TOKEN`, `PLATFORM`, `PORT`, `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT` (the Firebase Admin SDK service account key JSON, base64-encoded to fit on one line; unused until Firebase Auth wiring lands).
 
 Tests use their own variable, `TEST_DB_URL` (in `.env` locally, set by `ci.yml` in CI): a Postgres server, reached through its default `postgres` database, where tests create and drop their own throwaway databases. It's never the app's `DB_URL`. Tests fail (not skip) if it's missing or unreachable. CI runs a disposable Postgres service container for it.
