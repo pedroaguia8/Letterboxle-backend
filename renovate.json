@@ -3,5 +3,13 @@
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "baseBranchPatterns": ["dev"],
   "enabledManagers": ["dockerfile", "docker-compose", "github-actions", "gomod"],
-  "postUpdateOptions": ["gomodTidy"]
+  "postUpdateOptions": ["gomodTidy"],
+  "packageRules": [
+    {
+      "description": "Bump CI's Go and the build image's Go in one PR, so tests and the image never use different versions",
+      "matchManagers": ["github-actions", "dockerfile"],
+      "matchDepNames": ["go", "golang"],
+      "groupName": "go toolchain"
+    }
+  ]
 }
