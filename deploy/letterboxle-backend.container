@@ -1,0 +1,23 @@
+[Unit]
+Description=Letterboxle backend (Go API)
+Wants=postgres.service
+After=postgres.service
+
+[Container]
+ContainerName=letterboxle-backend
+# Filled in at deploy time with ghcr.io/pedroaguia8/letterboxle-backend:<sha>@sha256:<digest>
+Image=@IMAGE@
+# db: Postgres (no internet). web: Caddy reaches the API here, and the catalog sync reaches TMDB.
+Network=db.network
+Network=web.network
+EnvironmentFile=%h/env/letterboxle-backend.env
+ReadOnly=true
+DropCapability=ALL
+NoNewPrivileges=true
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target
