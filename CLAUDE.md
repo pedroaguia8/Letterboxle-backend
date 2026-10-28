@@ -22,6 +22,7 @@ go test ./internal/handlers/... -run TestDbMovieOfTheDayToMovie   # single test
 go fmt ./...
 staticcheck ./...
 gosec ./...
+govulncheck ./...   # run with CI's Go (GOTOOLCHAIN=go1.x.y): stdlib findings depend on the Go version
 
 # Database
 go build -o app && ./app migrate               # apply migrations (embedded in the binary; no goose CLI needed)
@@ -55,7 +56,8 @@ Tests use their own variable, `TEST_DB_URL` (in `.env` locally, set by `ci.yml` 
 
 ## CI/CD
 
-- `ci.yml`: on PR/push to `main` or `dev`, runs tests+gosec and separately fmt+staticcheck. On push to `main` only, it also builds and pushes the image to GHCR.
+- `ci.yml`: on PR/push to `main` or `dev`, runs tests+gosec+govulncheck and separately fmt+staticcheck. On push to `main` only, it also builds and pushes the image to GHCR.
+- `vulncheck.yml`: govulncheck on `main` daily (and by hand), because a new advisory can land with no push. govulncheck is what catches Go standard library CVEs: Renovate and Dependabot don't flag them, so a fix only shows up as an ordinary toolchain bump. When it fails on the stdlib, bump Go by hand in every `go-version:` and the Dockerfile's `golang` image together, then release.
 - `deploy/letterboxle-backend.container` is the Podman quadlet for the new server (ASUS, rootless Podman under the `apps` user; replaces `docker-compose.yml` at cutover). `Image=@IMAGE@` is a placeholder the deploy fills in with `ghcr.io/pedroaguia8/letterboxle-backend:<sha>@sha256:<digest>`. It joins the `db` network (Postgres, no internet) and `web` (Caddy, TMDB) and reads `/home/apps/env/letterboxle-backend.env`, so `DB_URL` there points at `postgres:5432`. Those names are a contract with the `homelab` repo (`docs/04-services.md`); renaming one changes both. Until the new deploy path exists it's installed by hand.
 - `cd.yml`: triggers on the `ci` workflow completing successfully on `main` (not directly on push), then SSHes (via cloudflared tunnel) into the prod host, pulls, rewrites `.env` from secrets, builds the image, runs `app migrate` in a throwaway container (`docker compose run --rm`) while the old app keeps serving, and only then switches over with `docker compose up -d`. If migrations fail the deploy stops there.
 - The frontend repo (`../Letterboxle-frontend`) has its own `ci.yml`/`cd.yml` built the same way. They deploy to `~/Letterboxle-frontend` on the same host and use the same four `SSH_*` secrets, which are set separately in each repo. The only key in the host's `authorized_keys` is the personal `id_ed25519`, so both repos' `SSH_PRIVATE_KEY` hold that key.
