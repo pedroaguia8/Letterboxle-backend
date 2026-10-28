@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "schedule:monthly"],
   "baseBranchPatterns": ["dev"],
   "enabledManagers": ["dockerfile", "docker-compose", "github-actions", "gomod"],
   "postUpdateOptions": ["gomodTidy"],
