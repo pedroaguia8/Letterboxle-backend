@@ -70,3 +70,58 @@ jobs:
             docker compose run --rm -T letterboxle-backend app migrate && \
             docker compose up -d
           "
+
+  # The new server (test hostname until cutover). Sends only the image ref: the forced command
+  # on the server (homelab scripts/deploy-app) pulls it, migrates, swaps the quadlet's Image= line,
+  # restarts and checks. The env file and the quadlet live on the server, not in this repo.
+  deploy-new-server:
+    name: Deploy to the new server
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+
+    permissions:
+      actions: read
+
+    env:
+      SSH_HOST: ${{ secrets.NEW_SERVER_SSH_HOST }}
+      SSH_USER: ${{ secrets.NEW_SERVER_SSH_USER }}
+
+    steps:
+      - name: Download the pinned reference
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: image-ref
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Install cloudflared
+        env:
+          CLOUDFLARED_VERSION: "2026.10.3"
+          CLOUDFLARED_DEB_SHA256: "297d906a8fef396ec888b51571e783d594bde280f3b44d63e8fa343ef2c4cc4e"
+        run: |
+          curl -L --output cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64.deb"
+          echo "${CLOUDFLARED_DEB_SHA256}  cloudflared.deb" | sha256sum -c -
+          sudo apt install ./cloudflared.deb
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.NEW_SERVER_DEPLOY_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.NEW_SERVER_SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          echo "Host $SSH_HOST" >> ~/.ssh/config
+          echo "  ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking yes" >> ~/.ssh/config
+
+      - name: Deploy via SSH
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.TUNNEL_SERVICE_TOKEN_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.TUNNEL_SERVICE_TOKEN_SECRET }}
+        run: ssh "$SSH_USER@$SSH_HOST" "$(cat image-ref)"
