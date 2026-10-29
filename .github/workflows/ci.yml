@@ -126,4 +126,13 @@ jobs:
       - name: Record the pinned reference
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
-        run: echo "Pushed \`${IMAGE}:${GITHUB_SHA}@${DIGEST}\`" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "${IMAGE}:${GITHUB_SHA}@${DIGEST}" > image-ref
+          echo "Pushed \`$(cat image-ref)\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # cd.yml can't read this job's outputs (different workflow), so it downloads this instead.
+      - name: Upload the pinned reference
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-ref
+          path: image-ref
