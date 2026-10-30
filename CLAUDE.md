@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Go backend for Letterboxle, a daily Wordle-style movie-guessing game. Serves a JSON API consumed by a separate React frontend, backed by PostgreSQL. Live at letterboxle.pedroaguia8.dev.
 
-This repo is public: don't name the server hardware (machine models etc.) in any file, commit message or PR here. Say "the server", "the prod host" or "the new server". Hardware details belong in the private `homelab` repo.
+This repo is public: don't name the server hardware (machine models etc.) in any file, commit message or PR here. Say "the server" or "the prod host". Hardware details belong in the private `homelab` repo.
 
 ## Commands
 
@@ -33,11 +33,11 @@ sqlc generate                                    # regenerate internal/database 
 
 To test the Docker image locally (Docker Desktop runs containers in a VM, so `--network host` and `localhost` in `DB_URL` don't reach the desktop): `docker build -t letterboxle-backend:local .`, then `docker run --rm --env-file .env -e DB_URL='postgres://letterboxle:letterboxle@host.docker.internal:5432/letterboxle?sslmode=disable' -p 127.0.0.1:8080:8080 letterboxle-backend:local` (append `app migrate` to run migrations instead), and `curl localhost:8080/api/movies`.
 
-Required env vars (`.env` in dev — copy `.env.example`, injected as secrets in CD): `DB_URL`, `TMDB_API_READ_ACCESS_TOKEN`, `PLATFORM`, `PORT`, `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT` (the Firebase Admin SDK service account key JSON, base64-encoded to fit on one line; unused until Firebase Auth wiring lands).
+Required env vars (`.env` in dev — copy `.env.example`; in prod, an env file written by hand on the server, see CI/CD): `DB_URL`, `TMDB_API_READ_ACCESS_TOKEN`, `PLATFORM`, `PORT`, `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT` (the Firebase Admin SDK service account key JSON, base64-encoded to fit on one line; unused until Firebase Auth wiring lands).
 
 Tests use their own variable, `TEST_DB_URL` (in `.env` locally, set by `ci.yml` in CI): a Postgres server, reached through its default `postgres` database, where tests create and drop their own throwaway databases. It's never the app's `DB_URL`. Tests fail (not skip) if it's missing or unreachable. CI runs a disposable Postgres service container for it.
 
-`docker-compose.yml` is prod-shaped (builds the app image, joins the external `npm` network) and is only ever run by `cd.yml` on the prod host — never run it locally, it'll fail (no `npm` network exists locally). `docker-compose.dev.yml` is unrelated to it (not an override/layer) and only provides a disposable local Postgres for development.
+`docker-compose.dev.yml` only provides a disposable local Postgres for development. Prod doesn't use Compose (see CI/CD).
 
 ## Architecture
 
@@ -60,10 +60,10 @@ Tests use their own variable, `TEST_DB_URL` (in `.env` locally, set by `ci.yml` 
 
 - `ci.yml`: on PR/push to `main` or `dev`, runs tests+gosec+govulncheck and separately fmt+staticcheck. On push to `main` only, it also builds and pushes the image to GHCR.
 - `vulncheck.yml`: govulncheck on `main` daily (and by hand), because a new advisory can land with no push. govulncheck is what catches Go standard library CVEs: Renovate and Dependabot don't flag them, so a fix only shows up as an ordinary toolchain bump. When it fails on the stdlib, bump Go by hand in every `go-version:` and the Dockerfile's `golang` image together, then release.
-- On the new server (rootless Podman under the `apps` user; replaces `docker-compose.yml` at cutover) the app runs from a Podman quadlet that's installed by hand and whose git copy lives in the `homelab` repo (`quadlets/letterboxle-backend.container`), not here. It joins the `db` network (Postgres, no internet) and `web` (Caddy, TMDB) and reads `/home/apps/env/letterboxle-backend.env`, so `DB_URL` there points at `postgres:5432`. The env file is written by hand on the server too: CD never sends secrets there. Those names are a contract with the `homelab` repo (`docs/04-services.md`); renaming one changes both.
-- `cd.yml`'s `deploy-new-server` job (alongside the `deploy` job for the current prod host until cutover) deploys there. The `image` job in `ci.yml` uploads the pinned ref (`ghcr.io/pedroaguia8/letterboxle-backend:<sha>@sha256:<digest>`) as the `image-ref` artifact; `deploy-new-server` downloads it from that run and sends only that string over SSH (through Access) as `apps`. The deploy key's forced command (`deploy-app` in the `homelab` repo) pulls the image, runs `app migrate`, swaps the quadlet's `Image=` line, restarts and checks, rolling back if the check fails. Its secrets are the `NEW_SERVER_*` ones in the `production` Environment, plus the shared `TUNNEL_SERVICE_TOKEN_*`.
-- `cd.yml`: triggers on the `ci` workflow completing successfully on `main` (not directly on push). Its `deploy` job SSHes (via cloudflared tunnel) into the current prod host, pulls, rewrites `.env` from secrets, builds the image, runs `app migrate` in a throwaway container (`docker compose run --rm`) while the old app keeps serving, and only then switches over with `docker compose up -d`. If migrations fail the deploy stops there.
-- The frontend repo (`../Letterboxle-frontend`) has its own `ci.yml`/`cd.yml` built the same way. They deploy to `~/Letterboxle-frontend` on the same host and use the same four `SSH_*` secrets, which are set separately in each repo. The only key in the host's `authorized_keys` is the personal `id_ed25519`, so both repos' `SSH_PRIVATE_KEY` hold that key.
+- On the server (rootless Podman under the `apps` user) the app runs from a Podman quadlet that's installed by hand and whose git copy lives in the `homelab` repo (`quadlets/letterboxle-backend.container`), not here. It joins the `db` network (Postgres, no internet) and `web` (Caddy, TMDB) and reads `/home/apps/env/letterboxle-backend.env`, so `DB_URL` there points at `postgres:5432`. The env file is written by hand on the server too: CD never sends secrets there. Those names are a contract with the `homelab` repo (`docs/04-services.md`); renaming one changes both.
+- `cd.yml`: triggers on the `ci` workflow completing successfully on `main` (not directly on push). The `image` job in `ci.yml` uploads the pinned ref (`ghcr.io/pedroaguia8/letterboxle-backend:<sha>@sha256:<digest>`) as the `image-ref` artifact; the `deploy` job downloads it from that run and sends only that string over SSH (through Access) as `apps`. The deploy key's forced command (`deploy-app` in the `homelab` repo) pulls the image, runs `app migrate` in a throwaway container while the old app keeps serving (if it fails, the deploy stops there), swaps the quadlet's `Image=` line, restarts and checks, rolling back if the check fails.
+- Its secrets live in the `production` Environment (limited to `main`): `SSH_HOST`, `SSH_USER`, `SSH_KNOWN_HOSTS`, `SSH_PRIVATE_KEY` (this app's own deploy key, usable only for `deploy-app letterboxle-backend`), plus the shared `TUNNEL_SERVICE_TOKEN_*` (Access service token). App secrets (`DB_URL`, TMDB, Firebase) aren't in GitHub: they live only in the server's env file.
+- The frontend repo (`../Letterboxle-frontend`) has its own `ci.yml`/`cd.yml` built the same way, with its own deploy key.
 
 ## Git workflow
 

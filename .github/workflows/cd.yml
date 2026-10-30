@@ -9,73 +9,11 @@ on:
 permissions: {}
 
 jobs:
+  # Sends only the image ref: the forced command on the server (homelab scripts/deploy-app) pulls it,
+  # migrates, swaps the quadlet's Image= line, restarts and checks. The env file and the quadlet live
+  # on the server, not in this repo.
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest
-    environment: production
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
-
-    env:
-      DB_URL: ${{ secrets.DB_URL }}
-      TMDB_API_READ_ACCESS_TOKEN: ${{ secrets.TMDB_API_READ_ACCESS_TOKEN }}
-      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      PLATFORM: "prod"
-      PORT: "8080"
-
-    steps:
-      - name: Install cloudflared
-        env:
-          CLOUDFLARED_VERSION: "2026.10.3"
-          CLOUDFLARED_DEB_SHA256: "297d906a8fef396ec888b51571e783d594bde280f3b44d63e8fa343ef2c4cc4e"
-        run: |
-          curl -L --output cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64.deb"
-          echo "${CLOUDFLARED_DEB_SHA256}  cloudflared.deb" | sha256sum -c -
-          sudo apt install ./cloudflared.deb
-
-      - name: Configure SSH
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-
-          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-          echo "Host $SSH_HOST" >> ~/.ssh/config
-          echo "  ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h" >> ~/.ssh/config
-          echo "  StrictHostKeyChecking yes" >> ~/.ssh/config
-
-      - name: Deploy via SSH
-        env:
-          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.TUNNEL_SERVICE_TOKEN_ID }}
-          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.TUNNEL_SERVICE_TOKEN_SECRET }}
-        run: |
-          ssh "$SSH_USER@$SSH_HOST" "
-            cd ~/Letterboxle-backend && \
-            git pull origin main && \
-            echo \"DB_URL=$DB_URL\" > .env && \
-            echo \"TMDB_API_READ_ACCESS_TOKEN=$TMDB_API_READ_ACCESS_TOKEN\" >> .env && \
-            echo \"FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID\" >> .env && \
-            echo \"FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT\" >> .env && \
-            echo \"PLATFORM=$PLATFORM\" >> .env && \
-            echo \"PORT=$PORT\" >> .env && \
-            docker compose build && \
-            echo 'Running Migrations...' && \
-            docker compose run --rm -T letterboxle-backend app migrate && \
-            docker compose up -d
-          "
-
-  # The new server (test hostname until cutover). Sends only the image ref: the forced command
-  # on the server (homelab scripts/deploy-app) pulls it, migrates, swaps the quadlet's Image= line,
-  # restarts and checks. The env file and the quadlet live on the server, not in this repo.
-  deploy-new-server:
-    name: Deploy to the new server
     runs-on: ubuntu-latest
     environment: production
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
@@ -84,8 +22,8 @@ jobs:
       actions: read
 
     env:
-      SSH_HOST: ${{ secrets.NEW_SERVER_SSH_HOST }}
-      SSH_USER: ${{ secrets.NEW_SERVER_SSH_USER }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
 
     steps:
       - name: Download the pinned reference
@@ -106,8 +44,8 @@ jobs:
 
       - name: Configure SSH
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.NEW_SERVER_DEPLOY_KEY }}
-          SSH_KNOWN_HOSTS: ${{ secrets.NEW_SERVER_SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
