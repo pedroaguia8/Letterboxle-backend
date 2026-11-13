@@ -2,8 +2,17 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "schedule:monthly"],
   "baseBranchPatterns": ["dev"],
-  "enabledManagers": ["dockerfile", "docker-compose", "github-actions", "gomod"],
+  "enabledManagers": ["dockerfile", "docker-compose", "github-actions", "gomod", "custom.regex"],
   "postUpdateOptions": ["gomodTidy"],
+  "customManagers": [
+    {
+      "description": "Track the CI tools installed with `go install <module>/cmd/<tool>@<version>` in workflows (gosec, govulncheck, staticcheck)",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["go install (?<depName>\\S+?)/cmd/\\S+@(?<currentValue>v\\S+)"],
+      "datasourceTemplate": "go"
+    }
+  ],
   "packageRules": [
     {
       "description": "Bump CI's Go and the build image's Go in one PR, so tests and the image never use different versions",
